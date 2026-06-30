@@ -2,8 +2,3 @@
 node_modules/
 *.log
 .claude/settings.local.json
-PRD-StratFlow.md
-build_docx.py
-build_pptx.py
-*.docx
-*.pptx
