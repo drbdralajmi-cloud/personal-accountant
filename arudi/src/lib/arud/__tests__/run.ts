@@ -3,8 +3,13 @@
  * كل بيت مشكول تشكيلاً كاملاً مع بحره المعروف.
  */
 
+import { CORPUS, fullVerse } from '../../../data/corpus';
+import { lexiconStats, wordsForPattern } from '../../lexicon';
 import { analyzeVerse } from '../analyze';
-import { toUnits, unitsToText, unitsToSymbols } from '../prosodic';
+import { composeHemistich } from '../compose';
+import { FEET_LIST } from '../feet';
+import { METERS } from '../meters';
+import { toUnits, unitsToText } from '../prosodic';
 
 interface Case {
   verse: string;
@@ -122,6 +127,48 @@ console.log(`مكسور؟ ${broken.ok ? 'لا' : 'نعم'} | أقرب بحر: ${
 broken.issues.slice(0, 3).forEach((i) => console.log(`   - ${i.hemistich}: ${i.message}`));
 if (!broken.ok) pass++;
 else fail++;
+
+console.log('\n=== أمثلة البحور ===\n');
+for (const m of METERS) {
+  const r = analyzeVerse(m.example.verse);
+  const good = r.ok && r.meter?.family === m.family;
+  good ? pass++ : fail++;
+  if (!good)
+    console.log(`✘ ${m.name} → ${r.meter?.name ?? '—'} (موزون: ${r.ok ? 'نعم' : 'لا'})`);
+}
+console.log(`تحقّق من ${METERS.length} مثالاً.`);
+
+console.log('\n=== المدوّنة الشعرية ===\n');
+for (const v of CORPUS) {
+  const r = analyzeVerse(fullVerse(v));
+  const good = r.ok && r.meter?.name === v.meter;
+  good ? pass++ : fail++;
+  if (!good) console.log(`✘ ${v.meter} → ${r.meter?.name ?? '—'} | ${v.sadr}`);
+}
+console.log(`تحقّق من ${CORPUS.length} بيتاً.`);
+
+console.log('\n=== المعجم الموزون ===\n');
+const stats = lexiconStats();
+console.log(`${stats.total} كلمة (معتمدة ${stats.curated} / قياسية ${stats.derived}).`);
+if (stats.total < 5000) {
+  console.log('✘ المعجم أصغر من المطلوب (٥٠٠٠ كلمة).');
+  fail++;
+} else pass++;
+for (const f of FEET_LIST) {
+  const n = wordsForPattern(f.pattern).length;
+  const good = n > 0;
+  good ? pass++ : fail++;
+  console.log(`${good ? '✔' : '✘'} ${f.name.padEnd(14)} ${String(n).padStart(5)} كلمة`);
+}
+
+console.log('\n=== التأليف الموزون ===\n');
+for (const slug of ['kamil', 'taweel', 'baseet', 'wafir', 'khafeef', 'mutaqarib']) {
+  const m = METERS.find((x) => x.slug === slug)!;
+  const line = composeHemistich(m, 'sadr');
+  const good = !!line && analyzeVerse(line.text).meter?.family === m.family;
+  good ? pass++ : fail++;
+  console.log(`${good ? '✔' : '✘'} ${m.name.padEnd(10)} ${line?.text ?? '— تعذّر التأليف'}`);
+}
 
 console.log(`\nالنتيجة: ${pass} ناجح / ${fail} فاشل\n`);
 process.exit(fail > 0 ? 1 : 0);

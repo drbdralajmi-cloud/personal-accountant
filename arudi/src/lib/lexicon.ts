@@ -271,3 +271,9 @@ export function lexiconStats() {
     byPattern,
   };
 }
+
+/** الفهارس الثلاثة — يستعملها مؤلّف الأشطر لتبليط الوزن بالكلمات. */
+export function patternIndex() {
+  const { byWaqf, byWasl, byTanween } = build();
+  return { byWaqf, byWasl, byTanween };
+}
