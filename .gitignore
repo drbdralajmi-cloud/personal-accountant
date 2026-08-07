@@ -2,3 +2,10 @@
 node_modules/
 *.log
 .claude/settings.local.json
+.next/
+out/
+build/
+.env
+.env*.local
+next-env.d.ts
+*.tsbuildinfo
