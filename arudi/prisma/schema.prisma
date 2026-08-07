@@ -25,6 +25,7 @@ model User {
   accounts  Account[]
   sessions  Session[]
   progress  Progress[]
+  daily     DailyPoints[]
   favorites Favorite[]
   searches  SearchLog[]
 }
@@ -171,17 +172,30 @@ model Exercise {
 /* --------------------------- بيانات المستخدم -------------------------- */
 
 model Progress {
-  id     String   @id @default(cuid())
-  userId String
-  level  String
-  right  Int      @default(0)
-  wrong  Int      @default(0)
-  points Int      @default(0)
-  day    DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  level     String
+  right     Int      @default(0)
+  wrong     Int      @default(0)
+  points    Int      @default(0)
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, level, day])
+  @@unique([userId, level])
+}
+
+/// نقاط كل يوم على حدة — يقابل خريطة daily في المتصفّح.
+model DailyPoints {
+  id     String @id @default(cuid())
+  userId String
+  /// بصيغة YYYY-MM-DD
+  day    String
+  points Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
 }
 
 model Favorite {

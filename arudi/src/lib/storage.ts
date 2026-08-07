@@ -126,9 +126,31 @@ export function onStorageChange(cb: () => void) {
   if (typeof window === 'undefined') return () => {};
   const handler = () => cb();
   window.addEventListener('arudi-storage', handler);
+  window.addEventListener('arudi-merged', handler);
   window.addEventListener('storage', handler);
   return () => {
     window.removeEventListener('arudi-storage', handler);
+    window.removeEventListener('arudi-merged', handler);
     window.removeEventListener('storage', handler);
   };
+}
+
+/**
+ * استبدال كل البيانات المحلّية بالحالة المدموجة القادمة من الحساب.
+ * يُستعمل بعد المزامنة، ويُطلق حدث التغيير مرّةً واحدة.
+ */
+export function replaceAll(next: {
+  favorites?: Favorite[];
+  history?: HistoryEntry[];
+  progress?: Progress;
+}) {
+  if (!canUse()) return;
+  try {
+    if (next.favorites) localStorage.setItem(KEYS.favorites, JSON.stringify(next.favorites));
+    if (next.history) localStorage.setItem(KEYS.history, JSON.stringify(next.history));
+    if (next.progress) localStorage.setItem(KEYS.progress, JSON.stringify(next.progress));
+    window.dispatchEvent(new CustomEvent('arudi-merged'));
+  } catch {
+    /* التخزين ممتلئ أو معطّل */
+  }
 }

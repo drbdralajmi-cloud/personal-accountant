@@ -35,9 +35,6 @@ function adminEmails(): string[] {
     .filter(Boolean);
 }
 
-/** هل يمكن لأحدٍ أن يكون مديراً على هذه النسخة أصلاً؟ */
-export const adminPossible = () => authEnabled() && (adminEmails().length > 0 || true);
-
 export async function requireAdmin(): Promise<Guard> {
   if (!authEnabled()) {
     return {

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SignInButtons } from './SignInButtons';
-import { authEnabled } from '@/lib/auth';
+import { authEnabled, emailNeedsDatabase } from '@/lib/auth';
 
 // تعتمد على متغيّرات البيئة لتحديد جهات الدخول المتاحة
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,7 @@ export default function SignInPage() {
   const providers = {
     google: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
     apple: !!(process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET),
-    email: !!(process.env.EMAIL_SERVER && process.env.EMAIL_FROM),
+    email: !!(process.env.EMAIL_SERVER && process.env.EMAIL_FROM && !emailNeedsDatabase),
   };
 
   return (
@@ -28,6 +28,16 @@ export default function SignInPage() {
           ويفيدك الحساب في مزامنتها بين أجهزتك.
         </p>
       </header>
+
+      {emailNeedsDatabase && (
+        <p
+          className="card text-xs leading-relaxed"
+          style={{ borderColor: 'var(--gold)', background: 'var(--gold-soft)' }}
+        >
+          ضُبط <code>EMAIL_SERVER</code> بلا قاعدة بيانات، والدخول بالبريد يحتاجها ليحفظ رموز
+          التحقّق — فعُطِّل وحده كي لا يتعطّل الدخول كلّه. اضبط <code>DATABASE_URL</code> لتفعيله.
+        </p>
+      )}
 
       {enabled ? (
         <SignInButtons providers={providers} />

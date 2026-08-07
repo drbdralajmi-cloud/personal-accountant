@@ -1,6 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
+import { SyncBridge } from './SyncBridge';
 import { useEffect } from 'react';
 
 export function Providers({
@@ -21,5 +22,10 @@ export function Providers({
 
   // بلا جهات دخول لا معنى لاستطلاع الجلسة، وهو يُخرج أخطاءً في وحدة التحكّم
   if (!auth) return <>{children}</>;
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <SessionProvider>
+      {children}
+      <SyncBridge />
+    </SessionProvider>
+  );
 }
