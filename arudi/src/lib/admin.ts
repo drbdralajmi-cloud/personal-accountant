@@ -40,6 +40,9 @@ export interface Page {
   columns: { key: string; label: string }[];
   editable: boolean;
   source: 'قاعدة البيانات' | 'ملفات المشروع';
+  /** سبب تعطيل التحرير، تضيفه طبقة الواجهة البرمجية. */
+  reason?: 'db' | 'auth' | null;
+  isAdmin?: boolean;
 }
 
 const PAGE = 25;

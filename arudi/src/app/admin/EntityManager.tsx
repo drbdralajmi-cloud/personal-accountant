@@ -101,9 +101,18 @@ export function EntityManager() {
 
       {page && !page.editable && (
         <p className="card-quiet text-xs leading-relaxed muted">
-          المحتوى معروضٌ من ملفات المشروع. لتحريره من هنا اضبط <code>DATABASE_URL</code> ثم شغّل{' '}
-          <code>npm run db:push</code> و<code>npm run db:seed</code>؛ عندها تُحفظ التعديلات في
-          قاعدة البيانات.
+          {page.reason === 'auth' ? (
+            <>
+              التحرير مقصورٌ على المديرين. سجّل الدخول بحسابٍ بريدُه مذكورٌ في{' '}
+              <code>ADMIN_EMAILS</code>، أو دورُه <code>ADMIN</code> في قاعدة البيانات.
+            </>
+          ) : (
+            <>
+              المحتوى معروضٌ من ملفات المشروع. لتحريره من هنا اضبط <code>DATABASE_URL</code> ثم شغّل{' '}
+              <code>npm run db:push</code> و<code>npm run db:seed</code>، واضبط جهة دخولٍ
+              و<code>ADMIN_EMAILS</code>.
+            </>
+          )}
         </p>
       )}
 
