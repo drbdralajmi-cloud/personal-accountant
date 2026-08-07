@@ -32,7 +32,13 @@ export default async function MeterPage({ params }: { params: Promise<{ slug: st
   if (!meter) notFound();
 
   const siblings = METERS.filter((m) => m.family === meter.family && m.id !== meter.id);
-  const examples = corpusByMeter(meter.name);
+  const corpus = corpusByMeter(meter.name);
+  // البحور النادرة قد لا يكون لها شاهدٌ في المدوّنة، فنعرض مفتاح البحر —
+  // وهو بيتٌ منظوم على وزنه ومُتحقَّق منه بالمحرّك.
+  const [sadrKey, ajzKey] = meter.example.verse.split('…').map((s) => s.trim());
+  const examples = corpus.length
+    ? corpus
+    : [{ sadr: sadrKey, ajz: ajzKey ?? '', poet: meter.example.poet, theme: 'مفتاح البحر' }];
 
   return (
     <div className="space-y-8">

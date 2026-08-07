@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpen, GraduationCap, PenLine, ScanLine, Sparkles } from 
 import { QuickAnalyze } from '@/components/QuickAnalyze';
 import { PatternStrip } from '@/components/Scansion';
 import { DailyDrill } from '@/components/DailyDrill';
+import { Reveal, Stagger, StaggerItem } from '@/components/Motion';
 import { FEET_LIST } from '@/lib/arud/feet';
 import { METERS, METER_FAMILIES } from '@/lib/arud/meters';
 import { LESSONS } from '@/data/lessons';
@@ -56,7 +57,7 @@ export default function HomePage() {
       {/* ── الأدوات ── */}
       <section>
         <SectionHead title="ماذا تريد أن تفعل؟" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Tool
             href="/analyze"
             icon={ScanLine}
@@ -81,7 +82,7 @@ export default function HomePage() {
             title="ادرس"
             body="عشرة دروس مرتّبة من تعريف العلم إلى النظم، مع اختبار بعد كل درس."
           />
-        </div>
+        </Stagger>
       </section>
 
       {/* ── القوالب ── */}
@@ -216,7 +217,8 @@ function Tool({
   body: string;
 }) {
   return (
-    <Link href={href} className="card transition-transform hover:-translate-y-0.5">
+    <StaggerItem>
+      <Link href={href} className="card block h-full transition-transform hover:-translate-y-0.5">
       <span
         className="mb-3 grid h-10 w-10 place-items-center rounded-xl"
         style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
@@ -225,6 +227,7 @@ function Tool({
       </span>
       <h3 className="title text-lg">{title}</h3>
       <p className="mt-1.5 text-xs leading-relaxed muted">{body}</p>
-    </Link>
+      </Link>
+    </StaggerItem>
   );
 }

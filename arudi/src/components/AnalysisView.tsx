@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, Info, Lightbulb } from 'lucide-react';
 import type { ApiAnalysis, ApiFoot, ApiHalf } from '@/lib/types';
 import { CopyButton, PrintButton, ShareButton, SpeakButton } from './actions';
+import { Pop } from './Motion';
 
 /** عرض نتيجة التحليل كاملةً: البحر، التقطيع، الأخطاء، الشرح، القافية. */
 export function AnalysisView({ data }: { data: ApiAnalysis }) {
   const sound = data.ok;
 
   return (
-    <div className="space-y-5">
+    <Pop className="space-y-5">
       {/* الخلاصة */}
       <div
         className="card flex flex-wrap items-center gap-4"
@@ -196,7 +197,7 @@ export function AnalysisView({ data }: { data: ApiAnalysis }) {
           )}
         </div>
       </div>
-    </div>
+    </Pop>
   );
 }
 

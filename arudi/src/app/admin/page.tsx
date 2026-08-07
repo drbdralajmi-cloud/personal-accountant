@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Database, FileText, Shapes, Users, Waves } from 'lucide-react';
 import { AdminTools } from './AdminTools';
+import { EntityManager } from './EntityManager';
+import { ContentChart } from '@/components/ContentChart';
 import { CORPUS } from '@/data/corpus';
 import { LESSONS } from '@/data/lessons';
 import { MORPH_PATTERNS } from '@/data/morphology';
@@ -10,7 +12,11 @@ import { FEET_LIST } from '@/lib/arud/feet';
 import { METERS, METER_FAMILIES } from '@/lib/arud/meters';
 import { generateExercises } from '@/lib/exercises';
 import { lexiconStats, wordsForPattern } from '@/lib/lexicon';
+import { adminStats } from '@/lib/admin';
 import { dbStatus } from '@/lib/db';
+
+// تقرأ حالة قاعدة البيانات ومتغيّرات البيئة عند كل طلب، فلا تُبنى مسبقاً
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'لوحة الإدارة',
@@ -18,7 +24,8 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminPage() {
-  const stats = lexiconStats();
+  const stats = await adminStats();
+  const lex = lexiconStats();
   const db = await dbStatus();
   const exercisesPerLevel = generateExercises('متوسط', 8, 1).length;
 
@@ -48,8 +55,8 @@ export default async function AdminPage() {
         <Stat
           icon={Database}
           label="الكلمات"
-          value={stats.total}
-          sub={`${stats.curated} معتمدة · ${stats.derived} قياسية`}
+          value={stats.words}
+          sub={`${lex.curated} معتمدة · ${lex.derived} قياسية`}
           href="/search"
         />
         <Stat icon={FileText} label="الدروس" value={LESSONS.length} sub={`${CORPUS.length} بيتاً في المدوّنة`} href="/lessons" />
@@ -87,9 +94,10 @@ export default async function AdminPage() {
             <tbody>
               <Row k="جذور صحيحة سالمة" v={`${SOUND_ROOTS.length} جذراً`} />
               <Row k="أوزان صرفية" v={`${MORPH_PATTERNS.length} وزناً`} />
-              <Row k="كلمات معتمدة" v={`${stats.curated} كلمة`} />
-              <Row k="صيغ مولَّدة" v={`${stats.derived} صيغة`} />
-              <Row k="أنماط رمزية مميّزة" v={`${stats.distinctPatterns} نمطاً`} />
+              <Row k="كلمات معتمدة" v={`${lex.curated} كلمة`} />
+              <Row k="صيغ مولَّدة" v={`${lex.derived} صيغة`} />
+              <Row k="أنماط رمزية مميّزة" v={`${lex.distinctPatterns} نمطاً`} />
+              <Row k="مصدر الأرقام" v={stats.live ? 'قاعدة البيانات' : 'ملفات المشروع'} />
               <Row k="أبيات المدوّنة" v={`${CORPUS.length} بيتاً`} />
               <Row k="تمارين لكل مستوى" v={`${exercisesPerLevel} تمارين متجدّدة`} />
             </tbody>
@@ -117,6 +125,19 @@ export default async function AdminPage() {
           </p>
         </div>
       </section>
+
+      <ContentChart
+        data={[
+          { label: 'كلمات', value: stats.words },
+          { label: 'بحور', value: METERS.length },
+          { label: 'تفعيلات', value: FEET_LIST.length },
+          { label: 'أبيات', value: CORPUS.length },
+          { label: 'دروس', value: LESSONS.length },
+          { label: 'مستخدمون', value: stats.users },
+        ]}
+      />
+
+      <EntityManager />
 
       <AdminTools />
     </div>

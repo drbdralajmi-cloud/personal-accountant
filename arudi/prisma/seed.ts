@@ -4,6 +4,14 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+
+// يُشغَّل خارج Next، فلا تُحمَّل متغيّرات البيئة تلقائياً
+try {
+  process.loadEnvFile?.('.env');
+} catch {
+  /* لا ملف .env — نعتمد على متغيّرات البيئة المضبوطة مسبقاً */
+}
+
 import { CORPUS } from '../src/data/corpus';
 import { LESSONS } from '../src/data/lessons';
 import { FEET_LIST } from '../src/lib/arud/feet';

@@ -3,6 +3,9 @@ import Link from 'next/link';
 import { SignInButtons } from './SignInButtons';
 import { authEnabled } from '@/lib/auth';
 
+// تعتمد على متغيّرات البيئة لتحديد جهات الدخول المتاحة
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'تسجيل الدخول',
   description: 'سجّل الدخول لحفظ تقدّمك ومفضّلاتك ومزامنتها بين أجهزتك.',

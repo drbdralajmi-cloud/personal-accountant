@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { UserMenu } from './UserMenu';
 
 const NAV = [
   { href: '/analyze', label: 'تحليل بيت', icon: ScanLine },
@@ -27,7 +28,7 @@ const NAV = [
   { href: '/search', label: 'البحث', icon: Search },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ auth = false }: { auth?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const active = (href: string) => pathname === href || pathname.startsWith(href + '/');
@@ -74,6 +75,7 @@ export function SiteHeader() {
           <Link href="/favorites" className="btn btn-ghost px-2.5" aria-label="المفضّلة">
             <Star size={17} />
           </Link>
+          <UserMenu enabled={auth} />
           <ThemeToggle />
           <button
             className="btn btn-ghost px-2.5 lg:hidden"

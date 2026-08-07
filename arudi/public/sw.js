@@ -1,7 +1,17 @@
 /* عامل الخدمة: يتيح تصفّح المنصّة دون اتصال بعد أول زيارة. */
 
 const CACHE = 'arudi-v1';
-const CORE = ['/', '/analyze', '/buhur', '/taf3ilat', '/training', '/lessons', '/manifest.webmanifest', '/icon.svg'];
+const CORE = [
+  '/',
+  '/analyze',
+  '/buhur',
+  '/taf3ilat',
+  '/training',
+  '/lessons',
+  '/offline',
+  '/manifest.webmanifest',
+  '/icon.svg',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -51,7 +61,10 @@ self.addEventListener('fetch', (event) => {
           }
           return res;
         })
-        .catch(() => cached);
+        .catch(() =>
+          // صفحةٌ لم تُزَر من قبل ولا اتصال: نعرض صفحة انقطاع الاتصال
+          cached || (request.mode === 'navigate' ? caches.match('/offline') : undefined),
+        );
       return cached || network;
     }),
   );
