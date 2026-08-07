@@ -1,0 +1,273 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/*                            نظام الألوان                             */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --font-body: 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', 'Traditional Arabic', 'Segoe UI',
+    Tahoma, system-ui, sans-serif;
+  --font-display: 'Amiri', 'Noto Naskh Arabic', 'Scheherazade New', Georgia, serif;
+
+  --bg: #f7f4ed;
+  --bg-soft: #fffdf8;
+  --surface: #ffffff;
+  --surface-2: #f2eee4;
+  --border: #e2dbcb;
+  --text: #24262e;
+  --text-soft: #5d6172;
+  --text-faint: #8b8f9f;
+  --accent: #0e6957;
+  --accent-soft: #d5f5e8;
+  --gold: #a76e2c;
+  --gold-soft: #f4ecd2;
+  --danger: #b3261e;
+  --danger-soft: #fbe4e2;
+  --ok: #146c43;
+  --ok-soft: #d9f2e4;
+  --shadow: 0 1px 2px rgb(36 38 46 / 5%), 0 8px 24px -12px rgb(36 38 46 / 18%);
+}
+
+.dark {
+  --bg: #14161c;
+  --bg-soft: #191c24;
+  --surface: #1d212a;
+  --surface-2: #242934;
+  --border: #333947;
+  --text: #eceef2;
+  --text-soft: #aab1c2;
+  --text-faint: #7d859a;
+  --accent: #44be9b;
+  --accent-soft: #0e3d34;
+  --gold: #dabc70;
+  --gold-soft: #3a2f18;
+  --danger: #f19c96;
+  --danger-soft: #43201d;
+  --ok: #6fd39f;
+  --ok-soft: #12352a;
+  --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 10px 30px -14px rgb(0 0 0 / 70%);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* خلفية زخرفية خفيفة */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 85% -10%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%),
+    radial-gradient(50rem 34rem at 0% 0%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 70%);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ */
+/*                              مكوّنات                                */
+/* ------------------------------------------------------------------ */
+
+@layer components {
+  .card {
+    @apply rounded-2xl border p-5 transition-shadow;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .card-quiet {
+    @apply rounded-xl border p-4;
+    background: var(--surface-2);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5
+           text-sm font-semibold transition-all active:scale-[.98] disabled:opacity-50
+           disabled:pointer-events-none;
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .btn:hover {
+    background: var(--surface-2);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.08);
+    background: var(--accent);
+  }
+
+  .dark .btn-primary {
+    color: #0b1310;
+  }
+
+  .btn-ghost {
+    @apply border-transparent;
+    background: transparent;
+  }
+
+  .input {
+    @apply w-full rounded-xl border px-4 py-3 text-base outline-none transition-shadow;
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .input:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+    border-color: var(--accent);
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold;
+    background: var(--surface-2);
+    color: var(--text-soft);
+  }
+
+  .chip-accent {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: transparent;
+  }
+
+  .chip-gold {
+    background: var(--gold-soft);
+    color: var(--gold);
+    border-color: transparent;
+  }
+
+  .chip-ok {
+    background: var(--ok-soft);
+    color: var(--ok);
+    border-color: transparent;
+  }
+
+  .chip-bad {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: transparent;
+  }
+
+  .muted {
+    color: var(--text-soft);
+  }
+
+  .faint {
+    color: var(--text-faint);
+  }
+
+  .title {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight;
+  }
+
+  .verse {
+    font-family: var(--font-display);
+    @apply text-lg leading-loose sm:text-xl;
+  }
+
+  /* شبكة التقطيع */
+  .scan-unit {
+    @apply inline-flex min-w-[1.6rem] flex-col items-center rounded-md px-1 py-0.5 text-center;
+  }
+
+  .scan-ok {
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+
+  .scan-bad {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  .link {
+    color: var(--accent);
+    @apply font-semibold underline-offset-4 hover:underline;
+  }
+
+  .table-clean {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .table-clean th {
+    @apply border-b px-3 py-2.5 text-right text-xs font-bold uppercase tracking-wide;
+    color: var(--text-faint);
+  }
+
+  .table-clean td {
+    @apply border-b px-3 py-2.5 text-right align-middle;
+  }
+
+  .table-clean tbody tr:hover td {
+    background: var(--surface-2);
+  }
+}
+
+/* شريط تمرير أنيق */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+  border: 3px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}
+
+/* الطباعة وتصدير PDF */
+@media print {
+  body::before,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

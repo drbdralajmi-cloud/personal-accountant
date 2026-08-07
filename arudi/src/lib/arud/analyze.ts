@@ -5,7 +5,15 @@
 import { splitSyllables } from './feet';
 import { FootMatch, HemistichMatch, matchExact, matchNearest, scoreFit } from './matcher';
 import { METERS, Meter } from './meters';
-import { Unit, cleanText, toUnits, unitsToBinary, unitsToSymbols, unitsToText } from './prosodic';
+import {
+  Unit,
+  cleanText,
+  mark,
+  toUnits,
+  unitsToBinary,
+  unitsToSymbols,
+  unitsToText,
+} from './prosodic';
 import { analyzeRhyme, RhymeInfo } from './rhyme';
 
 export interface AnalyzedFoot {
@@ -156,7 +164,7 @@ function toAnalyzed(text: string, m: HemistichMatch): AnalyzedHemistich {
       name: f.variant.name,
       change: f.variant.change,
       pattern: f.variant.pattern,
-      text: f.units.map((u) => u.letter + (u.state === 0 ? 'ْ' : u.haraka)).join(''),
+      text: f.units.map((u, k) => u.letter + mark(u, f.units[k - 1])).join(''),
       units: f.units,
       ok: f.ok,
       badUnits: f.badUnits,
