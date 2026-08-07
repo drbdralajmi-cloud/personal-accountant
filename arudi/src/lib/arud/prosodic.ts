@@ -253,7 +253,13 @@ export function toUnits(input: string, opts: BuildOptions = {}): Unit[][] {
       if (i === waslIdx) {
         // تُنطق مكسورة عند الابتداء فقط، وتُحذف في الدرج
         if (!drag && i === 0) {
-          stage1.push({ ...a, l: ALEF_HAMZA, d: a.d || KASRA, wordStart: true });
+          const h = a.d.split('').find((c) => isHaraka(c)) ?? KASRA;
+          stage1.push({
+            ...a,
+            l: h === KASRA ? ALEF_HAMZA_BELOW : ALEF_HAMZA,
+            d: h,
+            wordStart: true,
+          });
           pendingWordStart = false;
         } else {
           pendingWordStart = false; // ما بعدها ساكن يتصل بما قبله
@@ -466,11 +472,21 @@ function saturateEnd(units: Unit[]): Unit[][] {
   return [withMadd(FATHA), withMadd(DAMMA), withMadd(KASRA), asSukun()];
 }
 
-/** تمثيل نصّي للكتابة العروضية (للعرض للمستخدم). */
+/**
+ * تمثيل نصّي للكتابة العروضية (للعرض للمستخدم).
+ * لا تُوضع السكون على حروف المدّ لأنها لا تُشكَّل في الرسم المعتاد.
+ */
 export function unitsToText(units: Unit[]): string {
-  return units
-    .map((u) => u.letter + (u.state === 0 ? SUKUN : u.haraka || ''))
-    .join('');
+  return units.map((u, i) => u.letter + mark(u, units[i - 1])).join('');
+}
+
+/** علامة التشكيل المناسبة لوحدة عروضية. */
+export function mark(u: Unit, prev?: Unit): string {
+  if (u.state !== 0) return u.haraka || '';
+  if (u.letter === ALEF || u.letter === ALEF_MAKSURA) return '';
+  if (u.letter === WAW && prev?.haraka === DAMMA) return '';
+  if (u.letter === YEH && prev?.haraka === KASRA) return '';
+  return SUKUN;
 }
 
 /** التمثيل الرمزي: 1 متحرك، 0 ساكن، ? مجهول. */
