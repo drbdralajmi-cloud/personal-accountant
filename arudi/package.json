@@ -4,9 +4,9 @@
   "private": true,
   "description": "منصة العروض العربي — تعلّم البحور والأوزان والتفعيلات وتحليل الشعر",
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev -p 4600",
     "build": "next build",
-    "start": "next start -p 3000",
+    "start": "next start -p 4600",
     "typecheck": "tsc --noEmit",
     "test": "tsx src/lib/arud/__tests__/run.ts",
     "db:generate": "prisma generate",

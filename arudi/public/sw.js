@@ -1,6 +1,11 @@
-/* عامل الخدمة: يتيح تصفّح المنصّة دون اتصال بعد أول زيارة. */
+/*
+ * عامل الخدمة: يتيح تصفّح المنصّة دون اتصال بعد أول زيارة.
+ *
+ * نطاقه أصلُ هذه المنصّة وحده (المضيف + المنفذ)، ومخزونه باسمٍ خاصّ بها،
+ * فلا يعترض أي موقعٍ آخر ولو كان على المضيف نفسه بمنفذٍ مختلف.
+ */
 
-const CACHE = 'arudi-v1';
+const CACHE = 'arudi-cache-v1';
 const CORE = [
   '/',
   '/analyze',
@@ -24,7 +29,13 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))),
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((k) => k.startsWith('arudi-') && k !== CACHE)
+            .map((k) => caches.delete(k)),
+        ),
+      ),
   );
   self.clients.claim();
 });

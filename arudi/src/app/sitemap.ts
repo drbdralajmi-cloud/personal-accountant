@@ -3,7 +3,7 @@ import { LESSONS } from '@/data/lessons';
 import { FEET_LIST } from '@/lib/arud/feet';
 import { METERS } from '@/lib/arud/meters';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:4600';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

@@ -6,7 +6,7 @@ import { authEnabled } from '@/lib/auth';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:4600'),
   title: {
     default: 'العَروض — منصّة تعلّم أوزان الشعر العربي',
     template: '%s · منصّة العَروض',

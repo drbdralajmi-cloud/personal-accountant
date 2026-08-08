@@ -30,7 +30,7 @@ openssl rand -base64 32
 
 ```env
 NEXTAUTH_SECRET="الناتج هنا"
-NEXTAUTH_URL="https://your-domain.com"   # أو http://localhost:3000 محلياً
+NEXTAUTH_URL="https://your-domain.com"   # أو http://localhost:4600 محلياً
 ```
 
 `NEXTAUTH_URL` يجب أن يطابق العنوان الذي يُفتح منه الموقع فعلاً، وإلا فشلت دورة الإرجاع.
@@ -65,7 +65,7 @@ npm run db:seed     # بذر البحور والتفعيلات والمعجم و
 
    ```
    https://your-domain.com
-   http://localhost:3000
+   http://localhost:4600
    ```
 
 ٥. في **Authorized redirect URIs** ضع بالضبط — واللاحقة `/api/auth/callback/google` لازمة
@@ -73,7 +73,7 @@ npm run db:seed     # بذر البحور والتفعيلات والمعجم و
 
    ```
    https://your-domain.com/api/auth/callback/google
-   http://localhost:3000/api/auth/callback/google
+   http://localhost:4600/api/auth/callback/google
    ```
 
 ٦. انسخ المفتاحين:
@@ -177,7 +177,7 @@ UPDATE "User" SET role = 'ADMIN' WHERE email = 'you@example.com';
 - وللتأكّد من عدم كسر الدخول:
 
   ```bash
-  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/api/auth/session
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:4600/api/auth/session
   ```
 
   المتوقّع `200`. وإن جاء `500` فراجع سجلّ الخادم؛ أشهر أسبابه ضبط البريد بلا قاعدة بيانات.
