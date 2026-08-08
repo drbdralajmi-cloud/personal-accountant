@@ -162,6 +162,7 @@ function slim(a: ReturnType<typeof analyzeVerse>) {
     ajz: half(a.ajz),
     candidates: a.candidates,
     issues: a.issues,
+    culprits: a.culprits,
     explanation: a.explanation,
     rhyme: a.rhyme,
   };

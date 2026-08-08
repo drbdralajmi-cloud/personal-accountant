@@ -2,17 +2,27 @@
 
 import { useEffect, useState } from 'react';
 import { Flame, RefreshCw, Trophy } from 'lucide-react';
+import { ComposeTaskCard } from '@/components/ComposeTask';
 import { ExerciseRunner } from '@/components/ExerciseRunner';
 import { ProgressChart } from '@/components/ProgressChart';
 import type { Exercise } from '@/lib/exercises';
+import type { ComposeTask } from '@/lib/nabati-exercises';
 import { LEVELS, type Level } from '@/data/lessons';
 import { getProgress, onStorageChange, Progress, resetProgress } from '@/lib/storage';
 
 const EMPTY: Progress = { points: 0, levels: {}, daily: {}, streak: 0 };
 
-export function TrainingClient({ initial }: { initial: Record<string, Exercise[]> }) {
+export function TrainingClient({
+  initial,
+  initialCompose,
+}: {
+  initial: Record<string, Exercise[]>;
+  initialCompose: Record<string, ComposeTask[]>;
+}) {
   const [level, setLevel] = useState<Level>('مبتدئ');
+  const [system, setSystem] = useState<'نبطي' | 'خليلي'>('نبطي');
   const [sets, setSets] = useState(initial);
+  const [compose, setCompose] = useState(initialCompose);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<Progress>(EMPTY);
   const [mounted, setMounted] = useState(false);
@@ -27,12 +37,13 @@ export function TrainingClient({ initial }: { initial: Record<string, Exercise[]
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/exercises?level=${encodeURIComponent(level)}&count=8&seed=${Math.floor(
-          Math.random() * 1e6,
-        )}`,
+        `/api/exercises?level=${encodeURIComponent(level)}&count=8&system=${encodeURIComponent(
+          system,
+        )}&seed=${Math.floor(Math.random() * 1e6)}`,
       );
       const json = await res.json();
       if (json.exercises) setSets((s) => ({ ...s, [level]: json.exercises }));
+      setCompose((c) => ({ ...c, [level]: json.compose ?? [] }));
     } finally {
       setLoading(false);
     }
@@ -44,6 +55,28 @@ export function TrainingClient({ initial }: { initial: Record<string, Exercise[]
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
       <div className="space-y-4">
+        <div className="card space-y-2">
+          <p className="text-sm font-semibold">الميزان</p>
+          <div className="flex flex-wrap gap-1.5">
+            {(['نبطي', 'خليلي'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSystem(s)}
+                className={`chip ${s === system ? 'chip-accent' : 'hover:opacity-80'}`}
+              >
+                {s === 'نبطي' ? 'الطروق النبطية' : 'بحور الخليل'}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs faint">
+            {system === 'نبطي'
+              ? 'تمارين على طروق النبط الخليجية، وتُقرأ نصوصها بالنطق الخليجي.'
+              : 'تمارين على بحور الشعر الفصيح بعروض الخليل.'}
+            {' '}اضغط «تمارين جديدة» بعد التبديل.
+          </p>
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
           {LEVELS.map((l) => (
             <button
@@ -66,6 +99,21 @@ export function TrainingClient({ initial }: { initial: Record<string, Exercise[]
         </div>
 
         <ExerciseRunner key={level + (sets[level]?.[0]?.id ?? '')} exercises={sets[level] ?? []} />
+
+        {system === 'نبطي' && !!compose[level]?.length && (
+          <section className="space-y-3">
+            <div>
+              <h2 className="title text-xl">اكتب أنت</h2>
+              <p className="mt-1 text-sm leading-relaxed muted">
+                آخر مراتب التدريب: أن تنظم شطراً على طَرقٍ بعينه، فيزنه المحرّك لا نموذجُ إجابةٍ
+                محفوظ. وكل شطرٍ استقام وزنُه فهو صواب.
+              </p>
+            </div>
+            {compose[level].map((t) => (
+              <ComposeTaskCard key={t.id} task={t} />
+            ))}
+          </section>
+        )}
       </div>
 
       <aside className="space-y-4">

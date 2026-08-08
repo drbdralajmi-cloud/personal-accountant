@@ -200,7 +200,7 @@ function slotFor(
     for (const o of token.options) {
       add({
         pattern: o.pattern + '0',
-        name: o.name + 'ْ',
+        name: `${o.name} مُشبَعة`,
         change: 'الإشباع — مدّ آخر الشطر بساكن',
         cost: 0.5,
       });

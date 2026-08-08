@@ -6,6 +6,7 @@ import { useState } from 'react';
 import {
   BookOpen,
   GraduationCap,
+  Library,
   Menu,
   PenLine,
   Scale,
@@ -25,6 +26,7 @@ const NAV = [
   { href: '/taf3ilat', label: 'القوالب', icon: Shapes },
   { href: '/buhur', label: 'البحور الفصيحة', icon: Scale },
   { href: '/assistant', label: 'مساعد النظم', icon: PenLine },
+  { href: '/library', label: 'المكتبة', icon: Library },
   { href: '/training', label: 'التدريب', icon: GraduationCap },
   { href: '/lessons', label: 'الدروس', icon: BookOpen },
   { href: '/search', label: 'البحث', icon: Search },

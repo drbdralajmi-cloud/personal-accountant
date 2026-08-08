@@ -6,6 +6,7 @@ import { DailyDrill } from '@/components/DailyDrill';
 import { Reveal, Stagger, StaggerItem } from '@/components/Motion';
 import { FEET_LIST } from '@/lib/arud/feet';
 import { METERS, METER_FAMILIES } from '@/lib/arud/meters';
+import { TURUQ } from '@/lib/arud/nabati';
 import { LESSONS } from '@/data/lessons';
 import { lexiconStats } from '@/lib/lexicon';
 import { wordsForPattern } from '@/lib/lexicon';
@@ -21,16 +22,17 @@ export default function HomePage() {
       <section className="pt-6 text-center">
         <span className="chip chip-gold mb-4">
           <Sparkles size={13} />
-          علم الخليل بن أحمد في أداةٍ واحدة
+          عروض الشعر النبطي الخليجي
         </span>
         <h1 className="title text-4xl leading-tight sm:text-5xl">
-          تعلّم العَروض،
-          <br className="sm:hidden" /> وحلّل بيتك في لحظة
+          اكتب نبطيّك موزوناً،
+          <br className="sm:hidden" /> واعرف طَرقه في لحظة
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed muted sm:text-lg">
-          العَروض علمٌ يُعرَف به صحيح أوزان الشعر من فاسدها. اكتب بيتاً — مشكولاً أو غير مشكول —
-          فيقرأه المحرّك كما يُنطق لا كما يُرسم، ثم يسمّي بحره، ويعرض تقطيعه وتفعيلاته، ويدلّك على
-          موضع الكسر إن وُجد، ويشرح لك سبب كل نتيجة.
+          منصّةٌ لأوزان الشعر النبطي الخليجي: اكتب بيتك — مشكولاً أو غير مشكول — فيقرأه المحرّك
+          بالنطق الخليجي لا الفصيح، ثم يسمّي طَرقه، ويعرض تفعيلاته وتقطيعه، وإن انكسر الوزن أشار
+          إلى الكلمة التي انكسر عندها وشرح سببها واقترح بدائل. وميزانُ الخليل حاضرٌ للفصيح، ثانياً
+          لا أوّلاً.
         </p>
 
         <div className="mx-auto mt-8 max-w-3xl">
@@ -39,9 +41,9 @@ export default function HomePage() {
 
         <dl className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { n: (16).toLocaleString('ar-EG'), l: 'بحراً شعرياً' },
-            { n: METERS.length.toLocaleString('ar-EG'), l: 'صورة وزنية' },
-            { n: FEET_LIST.length.toLocaleString('ar-EG'), l: 'تفعيلات' },
+            { n: TURUQ.length.toLocaleString('ar-EG'), l: 'طَرقاً نبطياً' },
+            { n: METERS.length.toLocaleString('ar-EG'), l: 'صورة وزنية فصيحة' },
+            { n: FEET_LIST.length.toLocaleString('ar-EG'), l: 'تفعيلات أصول' },
             { n: stats.total.toLocaleString('ar-EG'), l: 'كلمة موزونة' },
           ].map((s) => (
             <div key={s.l} className="card-quiet text-center">
@@ -62,19 +64,19 @@ export default function HomePage() {
             href="/analyze"
             icon={ScanLine}
             title="حلّل بيتاً"
-            body="تقطيع كامل، اسم البحر، التفعيلات، مواضع الكسر، واقتراح التصحيح."
+            body="اسم الطَّرق، التفعيلات، التقطيع بالنطق الخليجي، الكلمة التي انكسر عندها الوزن، واقتراح التصحيح."
           />
           <Tool
             href="/assistant"
             icon={PenLine}
             title="اكتب شعراً"
-            body="محرّر يحلّل ما تكتبه فوراً، ويقترح بدائل موزونة وقوافيَ مناسبة."
+            body="محرّر يزن ما تكتبه فوراً على الطروق، ويقترح بدائل موزونة وقوافيَ مناسبة."
           />
           <Tool
             href="/training"
             icon={GraduationCap}
             title="تدرّب"
-            body="ثلاثة مستويات وستّة أنواع من التمارين، مع متابعة تقدّمك."
+            body="ثلاثة مستويات على الطروق النبطية، تنتهي بأن تنظم شطراً يزنه المحرّك."
           />
           <Tool
             href="/lessons"
@@ -83,6 +85,39 @@ export default function HomePage() {
             body="عشرة دروس مرتّبة من تعريف العلم إلى النظم، مع اختبار بعد كل درس."
           />
         </Stagger>
+      </section>
+
+      {/* ── الطروق النبطية ── */}
+      <section>
+        <SectionHead
+          title="الطروق النبطية"
+          more={{ href: '/nabati', label: 'كل الطروق' }}
+          sub="أوزان الشعر النبطي الخليجي بتفعيلاتها وعدد حروفها ومقاطعها. اضغط الطَّرق لترى تقطيعه وتغييراته الجائزة وطريقة الكتابة عليه وأخطاءه الشائعة."
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {TURUQ.slice(0, 8).map((t) => (
+            <Link
+              key={t.slug}
+              href={`/nabati/${t.slug}`}
+              className="card transition-transform hover:-translate-y-0.5"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="title text-lg">{t.name}</h3>
+                <span className="chip chip-gold !py-0.5 !text-[10px]">{t.difficulty}</span>
+              </div>
+              <p className="verse mt-2 text-sm leading-relaxed" style={{ color: 'var(--accent)' }}>
+                {t.formulaVocalized}
+              </p>
+              <div className="my-2.5">
+                <PatternStrip pattern={t.pattern} />
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="chip chip-accent !py-0.5 !text-[10px]">{t.letters} حرفاً</span>
+                <span className="faint">{t.syllableCount} مقطعاً</span>
+              </div>
+            </Link>
+          ))}
+        </div>
       </section>
 
       {/* ── القوالب ── */}
@@ -119,9 +154,9 @@ export default function HomePage() {
       {/* ── البحور ── */}
       <section>
         <SectionHead
-          title="بحور الشعر"
+          title="بحور الشعر الفصيح"
           more={{ href: '/buhur', label: 'كل البحور' }}
-          sub="ستة عشر بحراً استخرجها الخليل من كلام العرب، ولكل بحرٍ جرسه ومقامه."
+          sub="ميزانٌ ثانٍ للمنصّة: ستة عشر بحراً استخرجها الخليل من كلام العرب، لمن أراد الفصيح."
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {families.map(({ family, meters }) => {
@@ -149,16 +184,16 @@ export default function HomePage() {
       {/* ── النبطي ── */}
       <section>
         <SectionHead
-          title="الفصيح والنبطي — ميزانان لا ميزان"
-          more={{ href: '/nabati', label: 'طروق النبط' }}
-          sub="عروض الخليل يقيس بالحرف، وطروق النبط تُقاس باللحن. فاختر الميزان قبل أن تحكم على البيت."
+          title="ميزانان لا ميزان"
+          more={{ href: '/nabati', label: 'الفرق بينهما' }}
+          sub="طروق النبط تُقاس باللحن وتُقرأ بالنطق الخليجي، وعروض الخليل يقيس الحرف. والمنصّة تُصرّح بأيّهما وزنت، ولا تخلط."
         />
         <div className="grid gap-4 sm:grid-cols-3">
-          <Link href="/nabati" className="card transition-transform hover:-translate-y-0.5">
-            <h3 className="title text-lg">طروق النبط</h3>
+          <Link href="/library" className="card transition-transform hover:-translate-y-0.5">
+            <h3 className="title text-lg">مكتبة الشعر النبطي</h3>
             <p className="mt-2 text-xs leading-relaxed muted">
-              المسحوب والهجيني والصخري والهلالي والسامري والمروبّع والحداء، بصيغها المتداولة وعدد
-              حروفها.
+              أبياتٌ مصنّفةٌ بالطَّرق والقافية والموضوع والشاعر والدولة والمدرسة — يصنّفها المحرّك
+              من نصّ البيت لا بالتخمين.
             </p>
           </Link>
           <Link href="/analyze" className="card transition-transform hover:-translate-y-0.5">

@@ -8,7 +8,7 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:4600';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const pages = ['', '/analyze', '/buhur', '/taf3ilat', '/nabati', '/assistant', '/training', '/lessons', '/search'];
+  const pages = ['', '/analyze', '/buhur', '/taf3ilat', '/nabati', '/library', '/assistant', '/training', '/lessons', '/search'];
 
   return [
     ...pages.map((p) => ({

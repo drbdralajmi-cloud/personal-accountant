@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateExercises } from '@/lib/exercises';
+import { composeTasks, generateNabatiExercises } from '@/lib/nabati-exercises';
 import { LEVELS, type Level } from '@/data/lessons';
 
 export const runtime = 'nodejs';
@@ -13,5 +14,13 @@ export async function GET(req: NextRequest) {
   }
   const count = Math.min(Number(q.get('count') ?? 8) || 8, 20);
   const seed = Number(q.get('seed') ?? 1) || 1;
-  return NextResponse.json({ exercises: generateExercises(level, count, seed) });
+  // النبطي هو الأصل، والفصيح يُطلب صراحةً
+  const fusha = q.get('system') === 'خليلي';
+  return NextResponse.json({
+    system: fusha ? 'خليلي' : 'نبطي',
+    exercises: fusha
+      ? generateExercises(level, count, seed)
+      : generateNabatiExercises(level, count, seed),
+    compose: fusha ? [] : composeTasks(level, 3, seed),
+  });
 }

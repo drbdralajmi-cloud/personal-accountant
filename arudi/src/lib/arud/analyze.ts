@@ -95,6 +95,29 @@ export interface VerseAnalysis {
   system: ProsodySystem | 'مخصّص';
   /** عدد الحروف العروضية في النصّ (الصدر + العجز). */
   letters: number;
+  /** الكلمات التي وقع عندها الخلل، مع سببه بلغةٍ مبسّطة. */
+  culprits: Culprit[];
+}
+
+/**
+ * الكلمة التي انكسر الوزن عندها.
+ *
+ * لا يكفي أن يقال «الشطر مكسور»؛ فالشاعر يحتاج أن يُشار إلى الكلمة بعينها
+ * ويُقال له لماذا. فنردّ كل حرفٍ معيبٍ إلى كلمته، ثم نصف الخلل: أزائدٌ هو
+ * أم ناقص، وأيّ تفعيلةٍ اضطربت.
+ */
+export interface Culprit {
+  hemistich: 'الصدر' | 'العجز';
+  /** الكلمة كما كتبها الشاعر. */
+  word: string;
+  /** ترتيبها في الشطر (يبدأ من 1). */
+  index: number;
+  /** رقم التفعيلة التي وقعت فيها. */
+  foot: number;
+  /** التفعيلة التي كان يقتضيها الوزن في موضعها. */
+  expected: string;
+  /** شرحٌ مبسّط بلا مصطلحات. */
+  reason: string;
 }
 
 /** خيارات القياس: بأيّ ميزان، وعلى أيّ مجموعة أوزان. */
@@ -227,6 +250,7 @@ export function analyzeVerse(line: string, opts: AnalyzeOptions = {}): VerseAnal
     shape: 'شطر',
     system,
     letters: 0,
+    culprits: [],
   };
   if (!input) return empty;
 
@@ -383,6 +407,7 @@ function buildResult(
     : Math.max(20, 70 - issues.length * 9);
 
   const rhyme = analyzeRhyme(ajz?.text ?? sadr.text);
+  const culprits = [...blame(sadr, 'الصدر'), ...blame(ajz, 'العجز')];
 
   return {
     input,
@@ -398,7 +423,54 @@ function buildResult(
     shape: ajz ? 'بيت' : 'شطر',
     system,
     letters: sadr.binary.length + (ajz?.binary.length ?? 0),
+    culprits,
   };
+}
+
+/**
+ * ردّ الحروف المعيبة إلى كلماتها.
+ *
+ * كل وحدةٍ عروضية تحمل رقم كلمتها، فنجمع الوحدات المعيبة على كلماتها،
+ * ثم نصف لكل كلمةٍ ما أصابها: أزادت حرفاً أم نقصت، وأيّ تفعيلةٍ اضطربت
+ * عندها. وهذا ما يحتاجه الشاعر: أن يُشار إلى الكلمة لا إلى الشطر.
+ */
+function blame(h: AnalyzedHemistich | null, label: 'الصدر' | 'العجز'): Culprit[] {
+  if (!h || h.ok) return [];
+  const words = cleanText(h.text).split(' ').filter(Boolean);
+  const out = new Map<number, Culprit>();
+
+  h.feet.forEach((f, fi) => {
+    if (f.ok) return;
+    // مواضع الخلل داخل هذه التفعيلة، أو حروفها كلها إن كان الخلل نقصاً
+    const marks = f.badUnits.length
+      ? f.badUnits
+      : f.units.map((_, k) => h.units.indexOf(f.units[k])).filter((i) => i >= 0);
+    const wordIds = new Set<number>();
+    for (const m of marks) {
+      const u = h.units[m] ?? f.units.find((_, k) => k === 0);
+      if (u) wordIds.add(u.word);
+    }
+    if (!wordIds.size && f.units.length) wordIds.add(f.units[0].word);
+
+    for (const w of wordIds) {
+      if (out.has(w)) continue;
+      const word = words[w] ?? '';
+      if (!word) continue;
+      out.set(w, {
+        hemistich: label,
+        word,
+        index: w + 1,
+        foot: fi + 1,
+        expected: f.name,
+        reason:
+          f.missing > 0
+            ? `ينقص الوزنَ هنا ${f.missing} حرفاً: الموضع يقتضي (${f.name}) وما جاء أقصر منها. أطِل الكلمة أو أضِف قبلها كلمةً قصيرة.`
+            : `ترتيب الحركات والسكنات في «${word}» يخالف ما يقتضيه الموضع، وهو (${f.name}). أبدِلها بكلمةٍ على وزنها.`,
+      });
+    }
+  });
+
+  return [...out.values()].sort((a, b) => a.index - b.index);
 }
 
 /** شرح سبب النتيجة بلغة مفهومة. */

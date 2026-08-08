@@ -56,6 +56,35 @@ export function AnalysisView({ data }: { data: ApiAnalysis }) {
         )}
       </div>
 
+      {/* الكلمة التي انكسر عندها الوزن */}
+      {!!data.culprits?.length && (
+        <div className="card" style={{ borderColor: 'var(--danger)' }}>
+          <h3 className="title mb-1 flex items-center gap-2 text-lg">
+            <AlertTriangle size={18} style={{ color: 'var(--danger)' }} />
+            أين انكسر الوزن؟
+          </h3>
+          <p className="mb-3 text-sm muted">
+            لا يكفي أن يُقال «الشطر مكسور»؛ فهذه الكلمات بعينها هي مواضع الخلل، وهذا سببه.
+          </p>
+          <ul className="space-y-2">
+            {data.culprits.map((c, i) => (
+              <li key={i} className="card-quiet">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="verse text-xl" style={{ color: 'var(--danger)' }}>
+                    {c.word}
+                  </span>
+                  <span className="chip !py-0.5 !text-[10px]">
+                    {c.hemistich} · الكلمة {c.index}
+                  </span>
+                  <span className="chip !py-0.5 !text-[10px]">التفعيلة {c.foot}</span>
+                </div>
+                <p className="mt-1.5 text-sm leading-relaxed muted">{c.reason}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* مواضع الخلل */}
       {!!data.issues.length && (
         <div className="card">

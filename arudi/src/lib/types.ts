@@ -52,6 +52,15 @@ export interface ApiRhyme {
   pattern: string;
 }
 
+export interface ApiCulprit {
+  hemistich: string;
+  word: string;
+  index: number;
+  foot: number;
+  expected: string;
+  reason: string;
+}
+
 export interface ApiFix {
   hemistich: string;
   foot: number;
@@ -86,6 +95,8 @@ export interface ApiAnalysis {
   ajz: ApiHalf | null;
   candidates: { meter: string; slug: string; formula: string; confidence: number }[];
   issues: ApiIssue[];
+  /** الكلمات التي وقع عندها الكسر، مع سببه بلغةٍ مبسّطة. */
+  culprits?: ApiCulprit[];
   explanation: string[];
   rhyme: ApiRhyme | null;
   /** تُرجَع عند طلب الاقتراحات. */

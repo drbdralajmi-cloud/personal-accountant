@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, CircleDashed, Loader2, PenLine, TriangleAlert } from 'lucide-react';
 import { AnalysisView } from '@/components/AnalysisView';
-import type { ApiAnalysis } from '@/lib/types';
+import { SystemPicker } from '@/components/SystemPicker';
+import type { ApiAnalysis, ApiSystem } from '@/lib/types';
 
 const DEBOUNCE = 550;
 
 export function AssistantClient() {
   const [text, setText] = useState('');
+  const [system, setSystem] = useState<ApiSystem>('نبطي');
   const [data, setData] = useState<ApiAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -29,7 +31,7 @@ export function AssistantClient() {
         const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ text: q.split('\n')[0], suggest: true }),
+          body: JSON.stringify({ text: q.split('\n')[0], suggest: true, system, compare: true }),
         });
         const json = await res.json();
         // نتجاهل النتائج المتأخّرة عن آخر طلب
@@ -44,7 +46,7 @@ export function AssistantClient() {
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [text]);
+  }, [text, system]);
 
   const status = loading
     ? { icon: Loader2, label: 'جارٍ التحليل…', color: 'var(--text-faint)', spin: true }
@@ -81,6 +83,11 @@ export function AssistantClient() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           spellCheck={false}
+        />
+
+        <SystemPicker
+          value={system}
+          onChange={(v) => setSystem(v === 'مخصّص' ? 'نبطي' : v)}
         />
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
