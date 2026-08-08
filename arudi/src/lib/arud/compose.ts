@@ -134,6 +134,46 @@ function tile(
   return walk(0, []);
 }
 
+/* ------------------------------------------------------------------ */
+
+export interface Phrase {
+  /** التركيب مشكولاً كما يُنطق. */
+  text: string;
+  words: { word: string; segments: string[]; source: string }[];
+}
+
+/**
+ * تراكيب على وزن قالبٍ بعينه (كلمتان فأكثر).
+ *
+ * بعض الصور لا تقع على كلمةٍ واحدة في العربية — كـ(مُسْتَفْعِلَانْ) و
+ * (مُتَفَاعِلَانْ) وهما من أضرب المذيَّل، وطولهما يتجاوز بنية الكلمة المفردة.
+ * فتُملأ حينئذٍ بتركيبٍ من كلمتين، وهو ما يفعله الشاعر نفسه. وهذا يجعل لكل
+ * قالبٍ محتوًى، ولا يترك صفحةً فارغة.
+ */
+export function phrasesForPattern(
+  pattern: string,
+  opts: { limit?: number; seed?: number; curatedOnly?: boolean } = {},
+): Phrase[] {
+  const limit = opts.limit ?? 50;
+  const seen = new Set<string>();
+  const out: Phrase[] = [];
+  for (let attempt = 0; attempt < limit * 14 && out.length < limit; attempt++) {
+    const words = tile(pattern, {
+      seed: (opts.seed ?? 1) * 7919 + attempt * 131,
+      curatedOnly: opts.curatedOnly,
+    });
+    if (!words || words.length < 2) continue;
+    const text = words.map((w) => w.spoken).join(' ');
+    if (seen.has(text)) continue;
+    seen.add(text);
+    out.push({
+      text,
+      words: words.map((w) => ({ word: w.spoken, segments: w.segments, source: w.source })),
+    });
+  }
+  return out;
+}
+
 function addMark(word: string, m: string): string {
   const last = word[word.length - 1];
   if ('اىآءًٌٍ'.includes(last)) return word;

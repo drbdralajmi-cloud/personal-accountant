@@ -5,11 +5,19 @@
 
 import { CORPUS, fullVerse } from '../../../data/corpus';
 import { lexiconStats, wordsForPattern } from '../../lexicon';
-import { analyzeVerse } from '../analyze';
-import { composeHemistich } from '../compose';
+import { analyzeAgainstFormula, analyzeVerse, compareSystems } from '../analyze';
+import { composeHemistich, phrasesForPattern } from '../compose';
 import { FEET_LIST } from '../feet';
+import { parseFormula } from '../formula';
 import { METERS } from '../meters';
+import { NABATI_METERS, tariqLetters, TURUQ } from '../nabati';
 import { toUnits, unitsToText } from '../prosodic';
+import {
+  DERIVED_TEMPLATE_LIST,
+  TEMPLATES,
+  templateIssues,
+  templatesByPlain,
+} from '../templates';
 
 interface Case {
   verse: string;
@@ -168,6 +176,103 @@ for (const slug of ['kamil', 'taweel', 'baseet', 'wafir', 'khafeef', 'mutaqarib'
   const good = !!line && analyzeVerse(line.text).meter?.family === m.family;
   good ? pass++ : fail++;
   console.log(`${good ? '✔' : '✘'} ${m.name.padEnd(10)} ${line?.text ?? '— تعذّر التأليف'}`);
+}
+
+console.log('\n=== القوالب: الأصول والصور المتفرّعة ===\n');
+{
+  const issues = templateIssues();
+  issues.length ? (fail += issues.length) : pass++;
+  for (const i of issues) console.log(`✘ ${i}`);
+  console.log(`تحقّق من ${TEMPLATES.length} قالباً (${DERIVED_TEMPLATE_LIST.length} صورة متفرّعة).`);
+
+  // «فعلن» اسمٌ لصورتين مختلفتَي الوزن، ولا بدّ أن تظهرا معاً
+  const failun = templatesByPlain('فعلن').map((t) => t.pattern).sort();
+  const ok = failun.join(',') === '1010,1110';
+  ok ? pass++ : fail++;
+  console.log(`${ok ? '✔' : '✘'} «فعلن» تعطي صورتين: ${failun.join(' و ')}`);
+
+  // كل قالب لا بدّ أن يكون له محتوى: كلمات مفردة، وإلا فتراكيب من كلمتين
+  for (const t of TEMPLATES) {
+    const words = wordsForPattern(t.pattern).length;
+    const phrases = words ? 0 : phrasesForPattern(t.pattern, { limit: 3 }).length;
+    const good = words > 0 || phrases > 0;
+    good ? pass++ : fail++;
+    console.log(
+      `${good ? '✔' : '✘'} ${t.name.padEnd(15)} ${
+        words ? `${words} كلمة` : `${phrases} تركيباً (لا تقع على كلمة مفردة)`
+      }`,
+    );
+  }
+}
+
+console.log('\n=== قراءة الأوزان المُملاة ===\n');
+{
+  const cases: [string, number][] = [
+    ['مستفعلن فاعلن مستفعلن فاعلن', 24],
+    ['فاعلن فاعلن فاعلن فاعلن', 20],
+    ['فاعلن ×4', 20],
+    ['مستفعلن مستفعلن فاعلاتن', 21],
+    ['فعولن مفاعيلن فعولن مفاعيلن', 24],
+    ['مستفع لن فاعلاتن', 14],
+  ];
+  for (const [formula, letters] of cases) {
+    const p = parseFormula(formula);
+    const good = p.ok && p.pattern.length === letters;
+    good ? pass++ : fail++;
+    console.log(
+      `${good ? '✔' : '✘'} ${formula.padEnd(30)} ${p.pattern.length} حرفاً` +
+        (good ? '' : ` (المنتظر ${letters}؛ مجهول: ${p.unknown.join('، ') || '—'})`),
+    );
+  }
+}
+
+console.log('\n=== القياس على وزنٍ يُمليه المستخدم ===\n');
+{
+  // شطرٌ بُني على الوزن قصداً، فيجب أن يوافقه حرفاً بحرف
+  const fitting = analyzeAgainstFormula(
+    'يَا مَرْحَبَا بِالْقَمَرْ أَهْلًا بِكُمْ يَا سَمَرْ',
+    'مستفعلن فاعلن مستفعلن فاعلن',
+    { single: true },
+  );
+  fitting.verbatim ? pass++ : fail++;
+  console.log(`${fitting.verbatim ? '✔' : '✘'} موافقة حرفية: ${fitting.verdict}`);
+
+  // وشطرٌ أقصر منه، فيجب أن يُعلن النقص عدداً لا حكماً مبهماً
+  const short = analyzeAgainstFormula(
+    'مَرْحَبَا يَا قَمَرْ مَرْحَبَا يَا بَدَرْ',
+    'مستفعلن فاعلن مستفعلن فاعلن',
+    { single: true },
+  );
+  const shortOk = !short.verbatim && short.budget?.delta === -4;
+  shortOk ? pass++ : fail++;
+  console.log(`${shortOk ? '✔' : '✘'} كشف النقص: ${short.verdict}`);
+
+  // وهو نفسه موزون تماماً على المتدارك — أربع فاعلن
+  const asMutadarik = analyzeAgainstFormula(
+    'مَرْحَبَا يَا قَمَرْ مَرْحَبَا يَا بَدَرْ',
+    'فاعلن فاعلن فاعلن فاعلن',
+    { single: true },
+  );
+  asMutadarik.verbatim ? pass++ : fail++;
+  console.log(`${asMutadarik.verbatim ? '✔' : '✘'} ${asMutadarik.verdict}`);
+}
+
+console.log('\n=== طروق النبط ===\n');
+for (const t of TURUQ) {
+  const m = NABATI_METERS.find((x) => x.slug === t.slug)!;
+  const good = !!m && m.system === 'نبطي' && m.sadr.length > 0;
+  good ? pass++ : fail++;
+  console.log(
+    `${good ? '✔' : '✘'} ${t.name.padEnd(10)} ${m.formula.padEnd(46)} ${tariqLetters(t)} حرفاً`,
+  );
+}
+{
+  const cmp = compareSystems('مَرْحَبَا يَا قَمَرْ مَرْحَبَا يَا بَدَرْ');
+  const good = cmp.letters === 20 && cmp.khalili.ok && cmp.nabati.ok;
+  good ? pass++ : fail++;
+  console.log(
+    `${good ? '✔' : '✘'} الميزانان: خليلي «${cmp.khalili.meter?.name}» / نبطي «${cmp.nabati.meter?.name}» — ${cmp.letters} حرفاً`,
+  );
 }
 
 console.log(`\nالنتيجة: ${pass} ناجح / ${fail} فاشل\n`);

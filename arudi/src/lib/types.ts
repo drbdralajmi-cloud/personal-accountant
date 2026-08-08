@@ -62,11 +62,24 @@ export interface ApiFix {
   hint: string;
 }
 
+/** الميزان الذي قِيس به النصّ — يُصرَّح به في كل نتيجة. */
+export type ApiSystem = 'خليلي' | 'نبطي' | 'مخصّص';
+
+export interface ApiComparison {
+  letters: number;
+  differs: boolean;
+  khalili: { meter: string | null; ok: boolean };
+  nabati: { meter: string | null; ok: boolean };
+}
+
 export interface ApiAnalysis {
-  kind: 'بيت' | 'قصيدة';
+  kind: 'بيت' | 'قصيدة' | 'وزن';
   input: string;
   ok: boolean;
   shape: 'بيت' | 'شطر';
+  system?: ApiSystem;
+  /** عدد الحروف العروضية في النصّ. */
+  letters?: number;
   confidence: number;
   meter: ApiMeter | null;
   sadr: ApiHalf | null;
@@ -80,11 +93,34 @@ export interface ApiAnalysis {
   rhymes?: { word: string; segments: string[]; source: string }[];
   rhymeText?: string;
   completion?: { text: string; feet: string[] };
+  comparison?: ApiComparison;
   error?: string;
+}
+
+/** ناتج القياس على وزنٍ يُمليه المستخدم بالتفعيلات. */
+export interface ApiFormulaResult extends ApiAnalysis {
+  kind: 'وزن';
+  verdict: string;
+  verbatim: boolean;
+  assumedReading: string | null;
+  budget: {
+    required: number;
+    requiredMin: number;
+    requiredMax: number;
+    found: number;
+    delta: number;
+  } | null;
+  formula: {
+    normalized: string;
+    pattern: string;
+    unknown: string[];
+    feet: { raw: string; ok: boolean; options: { name: string; pattern: string }[] }[];
+  };
 }
 
 export interface ApiPoem {
   kind: 'قصيدة';
+  system?: ApiSystem;
   meter: { name: string; slug: string } | null;
   soundCount: number;
   brokenCount: number;

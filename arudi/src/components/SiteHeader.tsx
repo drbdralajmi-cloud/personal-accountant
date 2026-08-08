@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Menu,
   PenLine,
+  Scale,
   ScanLine,
   Search,
   Shapes,
@@ -20,8 +21,9 @@ import { UserMenu } from './UserMenu';
 
 const NAV = [
   { href: '/analyze', label: 'تحليل بيت', icon: ScanLine },
-  { href: '/buhur', label: 'البحور', icon: Waves },
+  { href: '/nabati', label: 'الطروق النبطية', icon: Waves },
   { href: '/taf3ilat', label: 'القوالب', icon: Shapes },
+  { href: '/buhur', label: 'البحور الفصيحة', icon: Scale },
   { href: '/assistant', label: 'مساعد النظم', icon: PenLine },
   { href: '/training', label: 'التدريب', icon: GraduationCap },
   { href: '/lessons', label: 'الدروس', icon: BookOpen },

@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { SearchClient } from './SearchClient';
 import { FEET_LIST } from '@/lib/arud/feet';
 import { METERS } from '@/lib/arud/meters';
+import { TEMPLATES } from '@/lib/arud/templates';
 import { lexiconStats } from '@/lib/lexicon';
 
 export const metadata: Metadata = {
@@ -13,13 +14,17 @@ export const metadata: Metadata = {
 
 export default function SearchPage() {
   const stats = lexiconStats();
-  const feet = FEET_LIST.map((f) => ({
-    name: f.name,
-    plain: f.plain,
-    pattern: f.pattern,
-    slug: f.slug,
-    variants: f.zihafat.map((z) => ({ name: z.name, pattern: z.pattern })),
-  }));
+  // القوالب كلها: الأصول الثماني وما تفرّع عنها، ليجد الباحث «فعلن» كما يجد «فاعلن»
+  const feet = TEMPLATES.map((t) => {
+    const root = FEET_LIST.find((f) => f.slug === t.slug);
+    return {
+      name: t.name,
+      plain: t.plain,
+      pattern: t.pattern,
+      slug: t.slug,
+      variants: (root?.zihafat ?? []).map((z) => ({ name: z.name, pattern: z.pattern })),
+    };
+  });
   const meters = METERS.map((m) => ({ name: m.name, slug: m.slug, formula: m.formula }));
 
   return (

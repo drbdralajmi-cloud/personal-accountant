@@ -152,23 +152,112 @@ function toAtoms(text: string): Atom[] {
  * تطبيق استثناءات النطق على مستوى الكلمة، مع مراعاة حروف الجرّ والعطف
  * المتصلة بأولها: «ولكن» ← «وَلَاكِنْ»، «بهذا» ← «بِهَاذَا».
  */
-function applyExceptions(text: string): string {
+function applyExceptions(text: string, dialect: Dialect = 'فصيح'): string {
+  const table = dialect === 'خليجي' ? GULF_TABLE : SPELLING_EXCEPTIONS;
   return text
     .split(' ')
     .map((w) => {
-      const bare = stripDiacritics(w);
-      const direct = SPELLING_EXCEPTIONS[bare];
+      const word = dialect === 'خليجي' ? softenHamza(w) : w;
+      const bare = stripDiacritics(word);
+      const direct = table[bare];
       if (direct) return direct;
-      if (bare.length < 2 || !PREFIXES.has(bare[0])) return w;
-      const rest = SPELLING_EXCEPTIONS[bare.slice(1)];
-      if (!rest) return w;
+      // «هالبيت» = «هَا» + «الْبَيْت» — إشارةٌ مختصرة كثيرة في النبط
+      if (dialect === 'خليجي' && /^هال.{2,}/.test(bare)) return 'هَا' + word.slice(1);
+      if (bare.length < 2 || !PREFIXES.has(bare[0])) return word;
+      const rest = table[bare.slice(1)];
+      if (!rest) return word;
       // نحتفظ بالحرف الأول بحركته كما وردت في النصّ
-      let head = w[0];
-      for (let i = 1; i < w.length && isDiacritic(w[i]); i++) head += w[i];
+      let head = word[0];
+      for (let i = 1; i < word.length && isDiacritic(word[i]); i++) head += word[i];
       return head + rest;
     })
     .join(' ');
 }
+
+/* ------------------------------------------------------------------ */
+/*                        النطق الخليجي (النبطي)                        */
+/* ------------------------------------------------------------------ */
+
+export type Dialect = 'فصيح' | 'خليجي';
+
+/**
+ * ما يؤثّر في الوزن من فروق النطق الخليجي، وما لا يؤثّر.
+ *
+ * لا يؤثّر (فلا نعالجه): قلب القاف گافاً والكاف تشاً والجيم ياءً وإبدال
+ * الثاء تاءً — هذه إبدالٌ في مخرج الحرف لا في عدده، والعروض يعدّ الحروف
+ * لا يصفها، فيبقى الوزن كما هو.
+ *
+ * يؤثّر (فنعالجه):
+ *   • تسهيل الهمزة وحذفها بعد حرف مدّ: «سماء» ← «سما»، «جاء» ← «جا» —
+ *     وهذا ينقص حرفاً من التقطيع.
+ *   • ردّ الموصولات والإشارات إلى صورها الدارجة: «الذي» ← «اللي» —
+ *     وبينهما حرفٌ كامل.
+ *   • «هالـ» إشارةً مختصرة = «هَا» + «ال» التعريفية.
+ *   • سكون أواخر الكلم هو الأصل، إذ لا إعراب في النبط — وهذا يحسمه
+ *     المحرّك بالوزن نفسه لأن الحركة تبقى مجهولة فيقدّرها الوزن.
+ */
+
+/** الهمزة المسهَّلة بعد حرف مدّ أو في آخر الكلمة. */
+function softenHamza(word: string): string {
+  return word
+    .replace(/([اويآ])[ءئؤ]/g, '$1') // سماء ← سما، شيء ← شي
+    .replace(/ء$/, '')
+    .replace(/^أ/, 'ا')
+    .replace(/^إ/, 'ا');
+}
+
+/** الدارج الخليجي: ما يُنطق بخلاف رسمه الفصيح فيتغيّر تقطيعه. */
+const GULF_EXTRA: Record<string, string> = {
+  الذي: 'اللِّي',
+  التي: 'اللِّي',
+  الذين: 'اللِّي',
+  اللي: 'اللِّي',
+  هذا: 'هَاذَا',
+  هذي: 'هَاذِي',
+  هذه: 'هَاذِي',
+  هاك: 'هَاكْ',
+  ذي: 'ذِي',
+  ذاك: 'ذَاكْ',
+  ذيك: 'ذِيكْ',
+  انت: 'إِنْتَ',
+  إنت: 'إِنْتَ',
+  انته: 'إِنْتَهْ',
+  انتي: 'إِنْتِي',
+  احنا: 'إِحْنَا',
+  إحنا: 'إِحْنَا',
+  هم: 'هُمْ',
+  وش: 'وَشْ',
+  ليش: 'لَيْشْ',
+  شلون: 'شْلَوْنْ',
+  كذا: 'كَذَا',
+  چذي: 'كِذِي',
+  عاد: 'عَادْ',
+  ترى: 'تَرَا',
+  على: 'عَلَا',
+  إلى: 'إِلَا',
+  لين: 'لَيْنْ',
+  إلين: 'إِلَيْنْ',
+  عسى: 'عَسَا',
+  يبى: 'يِبَا',
+  يبغى: 'يِبْغَا',
+  مو: 'مُو',
+  مب: 'مَبْ',
+  مهوب: 'مَهُوبْ',
+  ويا: 'وِيَا',
+  وياك: 'وِيَاكْ',
+  عقب: 'عُقْبْ',
+  چم: 'كَمْ',
+  حيل: 'حَيْلْ',
+  زين: 'زَيْنْ',
+  مرحبا: 'مَرْحَبَا',
+  الله: 'اللَّاه',
+  اللهم: 'اللَّاهُمَّ',
+  انشالله: 'إِنْشَالْلَاه',
+  يالله: 'يَالْلَاه',
+};
+
+/** جدول الخليجي = الفصيح ثم ما يخالفه من الدارج (الدارج يغلب). */
+const GULF_TABLE: Record<string, string> = { ...SPELLING_EXCEPTIONS, ...GULF_EXTRA };
 
 /** الحروف التي تسبق «ال» فتُدرَج همزتها: و، ف، ب، ك، ل، ت، س. */
 const PREFIXES = new Set(['و', 'ف', 'ب', 'ك', 'ل', 'ت', 'س']);
@@ -200,11 +289,17 @@ function startsWithWasl(bare: string): boolean {
   return false;
 }
 
-interface BuildOptions {
+export interface BuildOptions {
   /** هل هذا الشطر مسبوق بكلام (فيدرج أوله)؟ الافتراضي لا. */
   continued?: boolean;
   /** تطبيق إشباع آخر الشطر. الافتراضي نعم. */
   saturate?: boolean;
+  /**
+   * لهجة النطق. «خليجي» يطبّق نطق النبط: تسهيل الهمز، وردّ الكلمات
+   * الشائعة إلى نطقها الدارج، و«هالـ» و«اللي» ونحوهما.
+   * الافتراضي «فصيح».
+   */
+  dialect?: Dialect;
 }
 
 /**
@@ -212,8 +307,8 @@ interface BuildOptions {
  * تُعاد أكثر من نسخة عندما يكون آخر الشطر غير مشكول (روي مطلق أو مقيّد).
  */
 export function toUnits(input: string, opts: BuildOptions = {}): Unit[][] {
-  const { continued = false, saturate = true } = opts;
-  const text = applyExceptions(cleanText(input));
+  const { continued = false, saturate = true, dialect = 'فصيح' } = opts;
+  const text = applyExceptions(cleanText(input), dialect);
   const raw = toAtoms(text);
   if (!raw.length) return [];
 

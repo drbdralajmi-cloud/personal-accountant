@@ -90,7 +90,7 @@ export default function HomePage() {
         <SectionHead
           title="القوالب الشعرية (التفعيلات)"
           more={{ href: '/taf3ilat', label: 'كل القوالب' }}
-          sub="التفعيلة هي اللبنة التي يتركّب منها البحر. اضغط على أيّ قالب لترى شرحه وتقطيعه وخمسين كلمة على وزنه."
+          sub="التفعيلة هي اللبنة التي يتركّب منها البحر. هذه الأصول الثماني، ولها في صفحة القوالب صورٌ متفرّعة — كـ(فَعِلُنْ) و(مَفَاعِلُنْ). اضغط أيّ قالب لترى شرحه وتقطيعه وخمسين كلمة على وزنه."
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEET_LIST.map((f) => {
@@ -143,6 +143,38 @@ export default function HomePage() {
               </Link>
             );
           })}
+        </div>
+      </section>
+
+      {/* ── النبطي ── */}
+      <section>
+        <SectionHead
+          title="الفصيح والنبطي — ميزانان لا ميزان"
+          more={{ href: '/nabati', label: 'طروق النبط' }}
+          sub="عروض الخليل يقيس بالحرف، وطروق النبط تُقاس باللحن. فاختر الميزان قبل أن تحكم على البيت."
+        />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Link href="/nabati" className="card transition-transform hover:-translate-y-0.5">
+            <h3 className="title text-lg">طروق النبط</h3>
+            <p className="mt-2 text-xs leading-relaxed muted">
+              المسحوب والهجيني والصخري والهلالي والسامري والمروبّع والحداء، بصيغها المتداولة وعدد
+              حروفها.
+            </p>
+          </Link>
+          <Link href="/analyze" className="card transition-transform hover:-translate-y-0.5">
+            <h3 className="title text-lg">قِس على وزنٍ تُمليه</h3>
+            <p className="mt-2 text-xs leading-relaxed muted">
+              اكتب الوزن بالتفعيلات كما تعرفه، فيقيس المحرّك نصَّك عليه ويُريك كم حرفاً يقتضيه وزنك
+              وكم في نصّك وأين الفرق.
+            </p>
+          </Link>
+          <Link href="/taf3ilat" className="card transition-transform hover:-translate-y-0.5">
+            <h3 className="title text-lg">الصور المتفرّعة</h3>
+            <p className="mt-2 text-xs leading-relaxed muted">
+              فَعِلُنْ وفَعْلُنْ ومَفَاعِلُنْ ومُفْتَعِلُنْ وغيرها — قوالبُ لها صفحاتها وكلماتها،
+              لا مجرّد زحافاتٍ في جدول.
+            </p>
+          </Link>
         </div>
       </section>
 

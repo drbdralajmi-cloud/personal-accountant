@@ -1,13 +1,14 @@
 import type { MetadataRoute } from 'next';
 import { LESSONS } from '@/data/lessons';
-import { FEET_LIST } from '@/lib/arud/feet';
 import { METERS } from '@/lib/arud/meters';
+import { TURUQ } from '@/lib/arud/nabati';
+import { TEMPLATES } from '@/lib/arud/templates';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:4600';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const pages = ['', '/analyze', '/buhur', '/taf3ilat', '/assistant', '/training', '/lessons', '/search'];
+  const pages = ['', '/analyze', '/buhur', '/taf3ilat', '/nabati', '/assistant', '/training', '/lessons', '/search'];
 
   return [
     ...pages.map((p) => ({
@@ -16,14 +17,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly' as const,
       priority: p === '' ? 1 : 0.8,
     })),
+    ...TURUQ.map((t) => ({
+      url: `${BASE}/nabati/${t.slug}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    })),
     ...METERS.map((m) => ({
       url: `${BASE}/buhur/${m.slug}`,
       lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     })),
-    ...FEET_LIST.map((f) => ({
-      url: `${BASE}/taf3ilat/${f.slug}`,
+    ...TEMPLATES.map((t) => ({
+      url: `${BASE}/taf3ilat/${t.slug}`,
       lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.7,

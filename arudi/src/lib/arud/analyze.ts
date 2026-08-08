@@ -3,9 +3,19 @@
  */
 
 import { splitSyllables } from './feet';
-import { FootMatch, HemistichMatch, matchExact, matchNearest, scoreFit } from './matcher';
-import { METERS, Meter } from './meters';
 import {
+  formulaMeter,
+  isVerbatim,
+  letterBudget,
+  LetterBudget,
+  parseFormula,
+  ParsedFormula,
+} from './formula';
+import { FootMatch, HemistichMatch, matchExact, matchNearest, scoreFit } from './matcher';
+import { METERS, Meter, ProsodySystem, Slot } from './meters';
+import { NABATI_METERS } from './nabati';
+import {
+  Dialect,
   Unit,
   cleanText,
   mark,
@@ -81,13 +91,26 @@ export interface VerseAnalysis {
   rhyme: RhymeInfo | null;
   /** هل قُسّم البيت إلى شطرين أم عومل شطراً واحداً؟ */
   shape: 'بيت' | 'شطر';
+  /** الميزان الذي قِيس به النصّ — يُصرَّح به دائماً ولا يُترك ضِمناً. */
+  system: ProsodySystem | 'مخصّص';
+  /** عدد الحروف العروضية في النصّ (الصدر + العجز). */
+  letters: number;
+}
+
+/** خيارات القياس: بأيّ ميزان، وعلى أيّ مجموعة أوزان. */
+export interface AnalyzeOptions {
+  /** الأوزان التي يُقاس عليها. الأصل: بحور الخليل. */
+  pool?: Meter[];
+  system?: ProsodySystem | 'مخصّص';
+  /** لهجة النطق التي يُقرأ بها النصّ. النبطي يُقرأ خليجياً. */
+  dialect?: Dialect;
 }
 
 const SEPARATOR = /\s*(?:\.{3,}|…|\*{2,}|\|+|\t+| {2,}| {3,}|—{1,}|={2,}|\/{2,})\s*/;
 
 /** توليد كل الاحتمالات الصوتية لشطر (اختلاف الروي المطلق والمقيّد). */
-function candidatesFor(text: string): Unit[][] {
-  const out = toUnits(text, { continued: false });
+function candidatesFor(text: string, dialect: Dialect): Unit[][] {
+  const out = toUnits(text, { continued: false, dialect });
   const seen = new Set<string>();
   const uniq: Unit[][] = [];
   for (const u of out) {
@@ -108,15 +131,15 @@ interface Config {
   penalty: number;
 }
 
-function buildConfigs(line: string): Config[] {
+function buildConfigs(line: string, dialect: Dialect): Config[] {
   const configs: Config[] = [];
   const parts = line.split(SEPARATOR).filter((p) => p.trim());
   if (parts.length === 2) {
     configs.push({
       sadrText: parts[0].trim(),
       ajzText: parts[1].trim(),
-      sadr: candidatesFor(parts[0]),
-      ajz: candidatesFor(parts[1]),
+      sadr: candidatesFor(parts[0], dialect),
+      ajz: candidatesFor(parts[1], dialect),
       penalty: 0,
     });
     return configs;
@@ -127,7 +150,7 @@ function buildConfigs(line: string): Config[] {
   configs.push({
     sadrText: words.join(' '),
     ajzText: null,
-    sadr: candidatesFor(words.join(' ')),
+    sadr: candidatesFor(words.join(' '), dialect),
     ajz: null,
     penalty: 0.4,
   });
@@ -145,8 +168,8 @@ function buildConfigs(line: string): Config[] {
       configs.push({
         sadrText: a,
         ajzText: b,
-        sadr: candidatesFor(a),
-        ajz: candidatesFor(b),
+        sadr: candidatesFor(a, dialect),
+        ajz: candidatesFor(b, dialect),
         penalty: Math.abs(ratio - 0.5) * 1.2,
       });
     }
@@ -185,7 +208,10 @@ function toAnalyzed(text: string, m: HemistichMatch): AnalyzedHemistich {
 }
 
 /** تحليل بيت واحد أو شطر. */
-export function analyzeVerse(line: string): VerseAnalysis {
+export function analyzeVerse(line: string, opts: AnalyzeOptions = {}): VerseAnalysis {
+  const pool = opts.pool ?? METERS;
+  const system = opts.system ?? 'خليلي';
+  const dialect: Dialect = opts.dialect ?? (system === 'نبطي' ? 'خليجي' : 'فصيح');
   const input = line.trim();
   const empty: VerseAnalysis = {
     input,
@@ -199,10 +225,12 @@ export function analyzeVerse(line: string): VerseAnalysis {
     explanation: [],
     rhyme: null,
     shape: 'شطر',
+    system,
+    letters: 0,
   };
   if (!input) return empty;
 
-  const configs = buildConfigs(input);
+  const configs = buildConfigs(input, dialect);
   if (!configs.length || !configs[0].sadr.length) return empty;
 
   interface Fit {
@@ -216,7 +244,7 @@ export function analyzeVerse(line: string): VerseAnalysis {
   const exactFits: Fit[] = [];
 
   for (const cfg of configs) {
-    for (const meter of METERS) {
+    for (const meter of pool) {
       const single = cfg.ajz === null;
       // الشطر الواحد يُقاس بالصدر، إلا في المشطور فيقاس بما عُرّف له
       const sadrSlots = meter.sadr;
@@ -252,30 +280,39 @@ export function analyzeVerse(line: string): VerseAnalysis {
 
   if (exactFits.length) {
     exactFits.sort((a, b) => a.score - b.score);
-    return buildResult(input, exactFits[0], exactFits, true);
+    return buildResult(input, exactFits[0], exactFits, true, system);
   }
 
-  // لا مطابقة تامّة: نبحث عن أقرب وزن ونحدّد مواضع الكسر
-  const base = configs.find((c) => c.penalty === 0 && c.ajz) ?? configs[0];
+  // لا مطابقة تامّة: نبحث عن أقرب وزن ونحدّد مواضع الكسر.
+  // ولكل بحرٍ تقسيمُه المناسب: المشطور يُقاس شطراً واحداً، وغيره شطرين.
+  const singleCfg = configs.find((c) => c.ajz === null) ?? configs[0];
+  const twoCfg = configs.find((c) => c.penalty === 0 && c.ajz) ?? configs.find((c) => c.ajz);
   const near: Fit[] = [];
-  for (const meter of METERS) {
-    const single = base.ajz === null;
-    if (!single && !meter.ajz.length) continue;
-    const sm = matchNearest(base.sadr[0], meter.sadr);
+  for (const meter of pool) {
+    const cfg = meter.ajz.length ? (twoCfg ?? singleCfg) : singleCfg;
+    const single = cfg.ajz === null || !meter.ajz.length;
+    // النصّ غير المشكول يُقرأ بأكثر من وجه (الرويّ مطلقاً أو مقيّداً)،
+    // فنجرّب الوجوه كلها ونأخذ أقربها إلى الوزن لا أوّلها.
+    const best = (units: Unit[][], slots: Slot[]) =>
+      units
+        .map((u) => matchNearest(u, slots))
+        .filter((m): m is HemistichMatch => !!m)
+        .sort((a, b) => a.cost - b.cost)[0];
+    const sm = best(cfg.sadr, meter.sadr);
     if (!sm) continue;
-    const am = single ? null : matchNearest(base.ajz![0], meter.ajz);
+    const am = single ? null : best(cfg.ajz!, meter.ajz);
     if (!single && !am) continue;
     near.push({
       meter,
-      config: base,
+      config: cfg,
       sadr: sm,
       ajz: am,
-      score: scoreFit(meter, single ? [sm] : [sm, am]),
+      score: scoreFit(meter, single ? [sm] : [sm, am]) + cfg.penalty,
     });
   }
   if (!near.length) return empty;
   near.sort((a, b) => a.score - b.score);
-  return buildResult(input, near[0], near, false);
+  return buildResult(input, near[0], near, false, system);
 }
 
 function buildResult(
@@ -289,6 +326,7 @@ function buildResult(
   },
   all: { meter: Meter; score: number; sadr: HemistichMatch; ajz: HemistichMatch | null }[],
   exact: boolean,
+  system: ProsodySystem | 'مخصّص',
 ): VerseAnalysis {
   const sadr = toAnalyzed(best.config.sadrText, best.sadr);
   const ajz = best.ajz ? toAnalyzed(best.config.ajzText!, best.ajz) : null;
@@ -358,6 +396,8 @@ function buildResult(
     explanation: explain(best.meter, sadr, ajz, ok, issues),
     rhyme,
     shape: ajz ? 'بيت' : 'شطر',
+    system,
+    letters: sadr.binary.length + (ajz?.binary.length ?? 0),
   };
 }
 
@@ -370,8 +410,16 @@ function explain(
   issues: Issue[],
 ): string[] {
   const out: string[] = [];
+  const letters = sadr.binary.length + (ajz?.binary.length ?? 0);
+  out.push(
+    meter.system === 'نبطي'
+      ? 'قِيس النصّ بميزان النبط: الطروق تُسمَّى بتفعيلاتها على التقريب، ويُتسامح فيها بالزحاف والإشباع.'
+      : 'قِيس النصّ بعروض الخليل، وهو ميزان الشعر الفصيح: كل حرفٍ يُحسب، ولا تتغيّر التفعيلة إلا بزحافٍ معلوم.',
+  );
   out.push(`كُتب النصّ كتابةً عروضية فصار: «${sadr.prosodic}»${ajz ? ` … «${ajz.prosodic}»` : ''}.`);
-  out.push(`ثم رُمز لكل حرف: (/) للمتحرك و(°) للساكن، فنتج: ${sadr.symbols}`);
+  out.push(
+    `ثم رُمز لكل حرف: (/) للمتحرك و(°) للساكن، فنتج: ${sadr.symbols} — وجملتها ${letters} حرفاً عروضياً.`,
+  );
   if (ok) {
     out.push(`طابقت السلسلة وزن بحر ${meter.name}: ${meter.formula}.`);
   } else {
@@ -413,12 +461,13 @@ export interface PoemAnalysis {
   brokenCount: number;
 }
 
-export function analyzePoem(text: string): PoemAnalysis {
+export function analyzePoem(text: string, opts: AnalyzeOptions = {}): PoemAnalysis {
+  const pool = opts.pool ?? METERS;
   const lines = text
     .split(/\n+/)
     .map((l) => l.trim())
     .filter(Boolean);
-  const verses = lines.map(analyzeVerse);
+  const verses = lines.map((l) => analyzeVerse(l, opts));
   const tally = new Map<string, number>();
   for (const v of verses) {
     if (v.meter && v.ok) tally.set(v.meter.id, (tally.get(v.meter.id) ?? 0) + 1);
@@ -428,7 +477,7 @@ export function analyzePoem(text: string): PoemAnalysis {
   for (const [id, n] of tally) {
     if (n > top) {
       top = n;
-      meter = METERS.find((m) => m.id === id) ?? null;
+      meter = pool.find((m) => m.id === id) ?? null;
     }
   }
   return {
@@ -436,5 +485,138 @@ export function analyzePoem(text: string): PoemAnalysis {
     meter,
     soundCount: verses.filter((v) => v.ok).length,
     brokenCount: verses.filter((v) => !v.ok).length,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*                  القياس بميزان النبط وبوزنٍ مُملىً                   */
+/* ------------------------------------------------------------------ */
+
+/** قياس النصّ على طروق النبط بدل بحور الخليل. */
+export function analyzeNabati(line: string, opts: { dialect?: Dialect } = {}): VerseAnalysis {
+  return analyzeVerse(line, {
+    pool: NABATI_METERS,
+    system: 'نبطي',
+    dialect: opts.dialect ?? 'خليجي',
+  });
+}
+
+export interface FormulaAnalysis {
+  /** قراءة الوزن الذي أملاه المستخدم. */
+  parsed: ParsedFormula;
+  /** نتيجة القياس عليه، أو null إن تعذّرت قراءة الوزن. */
+  analysis: VerseAnalysis | null;
+  /** الحساب العدديّ: كم حرفاً يقتضيه الوزن وكم في النصّ. */
+  budget: LetterBudget | null;
+  /** حكمٌ مختصر بالعربية على مطابقة النصّ للوزن المطلوب. */
+  verdict: string;
+  /** وافق الوزنَ بحروفه كما كُتب، بلا زحافٍ ولا تسامح. */
+  verbatim: boolean;
+  /**
+   * التشكيل الذي اضطُرّ إليه المحرّك ليستقيم الوزن، إن كان النصّ غير مشكول.
+   * وهذا موضع تنبيهٍ لا تجاهل: قد يستقيم النصّ على الوزن بقراءةٍ لا يقرأ بها
+   * صاحبُه، فيُظنّ الموافقة وليست بموافقة.
+   */
+  assumedReading: string | null;
+}
+
+/**
+ * قياس نصٍّ على وزنٍ يُمليه المستخدم بالتفعيلات.
+ *
+ * هذه هي الإجابة النزيهة عن الخلاف في الأوزان: لا يجادل المحرّك في تسمية
+ * الوزن، بل يقيس النصّ على الوزن الذي يُملى عليه، ويُظهر الحساب: هذا ما
+ * يقتضيه وزنك من الحروف، وهذا ما في نصّك، وهذا موضع الفرق.
+ */
+export function analyzeAgainstFormula(
+  line: string,
+  formula: string,
+  opts: { tolerant?: boolean; ishbaa?: boolean; single?: boolean } = {},
+): FormulaAnalysis {
+  const parsed = parseFormula(formula);
+  const fail = (verdict: string): FormulaAnalysis => ({
+    parsed,
+    analysis: null,
+    budget: null,
+    verdict,
+    verbatim: false,
+    assumedReading: null,
+  });
+
+  if (!parsed.tokens.some((t) => t.ok)) {
+    return fail(
+      parsed.unknown.length
+        ? `لم أعرف من الوزن: ${parsed.unknown.join('، ')}. اكتب التفعيلات بأسمائها المعروفة.`
+        : 'اكتب وزناً بالتفعيلات، مثل: مستفعلن فاعلن مستفعلن فاعلن.',
+    );
+  }
+
+  const meter = formulaMeter(parsed, {
+    tolerant: opts.tolerant ?? false,
+    ishbaa: opts.ishbaa ?? false,
+    single: opts.single ?? false,
+  });
+  if (!meter) return fail('تعذّر بناء الوزن.');
+
+  const analysis = analyzeVerse(line, { pool: [meter], system: 'مخصّص' });
+  const perHemistich = analysis.shape === 'بيت';
+  const where = perHemistich ? ' في الشطر' : '';
+  const found = perHemistich ? (analysis.sadr?.binary.length ?? 0) : analysis.letters;
+  const budget = letterBudget(parsed, found);
+
+  // هل وافق كلُّ موضعٍ صورتَه المكتوبة، أم احتاج زحافاً ليستقيم؟
+  const known = parsed.tokens.filter((t) => t.ok);
+  const matched = analysis.sadr?.feet ?? [];
+  const verbatim =
+    analysis.ok &&
+    matched.length === known.length &&
+    matched.every((f, i) => isVerbatim(known[i], f.pattern));
+
+  // النصّ غير المشكول يَحسِم المحرّكُ حركاتِه بما يقتضيه الوزن، فقد يستقيم
+  // على قراءةٍ لا يقرأ بها صاحبه. نُظهرها له ليحكم بنفسه.
+  const bare = !/[ً-ْ]/.test(line);
+  const assumedReading = bare && analysis.ok ? (analysis.sadr?.prosodic ?? null) : null;
+
+  let verdict: string;
+  if (verbatim) {
+    verdict = `النصّ موافقٌ للوزن الذي أمليتَه حرفاً بحرف: ${parsed.normalized}.`;
+  } else if (analysis.ok) {
+    const changes = matched
+      .filter((f, i) => !isVerbatim(known[i], f.pattern))
+      .map((f) => f.name)
+      .join('، ');
+    verdict = `النصّ يستقيم على الوزن بعد زحافٍ في: ${changes} — لا على صورته المكتوبة.`;
+  } else if (budget.delta === 0) {
+    verdict = `عددُ الحروف موافق (${budget.found}) لكنّ ترتيب الحركات والسكنات يخالف الوزن في ${analysis.issues.length} موضعاً.`;
+  } else if (budget.delta < 0) {
+    verdict = `الوزن يقتضي ${budget.requiredMin} حرفاً${where}، وفي النصّ ${budget.found} — فينقصه ${Math.abs(budget.delta)} حرفاً.`;
+  } else {
+    verdict = `الوزن يقتضي ${budget.requiredMax} حرفاً${where}، وفي النصّ ${budget.found} — فيزيد عليه ${budget.delta} حرفاً.`;
+  }
+
+  return { parsed, analysis, budget, verdict, verbatim, assumedReading };
+}
+
+export interface SystemComparison {
+  /** عدد الحروف العروضية في النصّ — الرقم الذي يُحتكم إليه. */
+  letters: number;
+  khalili: VerseAnalysis;
+  nabati: VerseAnalysis;
+  /** هل اختلف الميزانان في الحكم؟ */
+  differs: boolean;
+}
+
+/**
+ * قياس النصّ بالميزانين معاً وعرضهما جنباً إلى جنب.
+ * فقد يكون البيت مكسوراً في الفصيح مستقيماً في النبط — وكلا الحكمين صحيح
+ * في بابه، والخطأ إنما هو في الخلط بينهما.
+ */
+export function compareSystems(line: string): SystemComparison {
+  const khalili = analyzeVerse(line);
+  const nabati = analyzeNabati(line);
+  return {
+    letters: khalili.letters,
+    khalili,
+    nabati,
+    differs: khalili.meter?.name !== nabati.meter?.name || khalili.ok !== nabati.ok,
   };
 }
