@@ -38,6 +38,12 @@ const DIFFICULTIES = ['مبتدئ', 'متوسط', 'متقدّم'];
  */
 export function TuruqBrowser({ rows, regions }: { rows: TariqRow[]; regions: string[] }) {
   const [q, setQ] = useState('');
+  const [verse, setVerse] = useState('');
+  const [matches, setMatches] = useState<
+    { slug: string; name: string; formula: string; ok: boolean; confidence: number;
+      feet: string[]; letters: number; required: number }[] | null
+  >(null);
+  const [busy, setBusy] = useState(false);
   const [syllables, setSyllables] = useState('');
   const [region, setRegion] = useState('');
   const [difficulty, setDifficulty] = useState('');
@@ -76,8 +82,79 @@ export function TuruqBrowser({ rows, regions }: { rows: TariqRow[]; regions: str
 
   const dirty = q || syllables || region || difficulty;
 
+  const measure = async () => {
+    const t = verse.trim();
+    if (!t) { setMatches(null); return; }
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/turuq?verse=${encodeURIComponent(t)}`);
+      const json = await res.json();
+      setMatches(json.matches ?? []);
+    } catch {
+      setMatches([]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <section className="space-y-4">
+      <div className="card space-y-3">
+        <label htmlFor="tv" className="block text-sm font-semibold">
+          على أيّ طَرقٍ هذا البيت؟
+        </label>
+        <textarea
+          id="tv"
+          rows={2}
+          className="input verse resize-y leading-loose"
+          placeholder="اكتب بيتاً أو شطراً، فيُقاس على الطروق كلها وتُرتَّب بأقربها إليه…"
+          value={verse}
+          onChange={(e) => setVerse(e.target.value)}
+        />
+        <div className="row flex flex-wrap items-center gap-2">
+          <button type="button" className="btn btn-primary" onClick={measure} disabled={busy || !verse.trim()}>
+            قِسْه على الطروق
+          </button>
+          {matches && (
+            <button type="button" className="btn btn-ghost text-xs" onClick={() => { setVerse(''); setMatches(null); }}>
+              مسح
+            </button>
+          )}
+        </div>
+        {matches && (
+          <div className="overflow-x-auto">
+            {matches.length ? (
+              <table className="table-clean">
+                <thead>
+                  <tr><th>الطَّرق</th><th>التفعيلات</th><th>الحكم</th><th>حروف نصّك</th><th>يقتضي</th></tr>
+                </thead>
+                <tbody>
+                  {matches.map((m) => (
+                    <tr key={m.slug}>
+                      <td>
+                        <Link href={`/nabati/${m.slug}`} className="font-bold hover:underline">
+                          {m.name}
+                        </Link>
+                      </td>
+                      <td className="verse text-sm">{m.formula}</td>
+                      <td>
+                        <span className={`chip !py-0.5 !text-[10px] ${m.ok ? 'chip-ok' : ''}`}>
+                          {m.ok ? 'استقام عليه' : `${m.confidence}٪`}
+                        </span>
+                      </td>
+                      <td>{m.letters}</td>
+                      <td>{m.required}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-sm muted">لم يُقَس على شيء. تأكّد من النصّ.</p>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="card space-y-3">
         <label htmlFor="tq" className="flex items-center gap-2 text-sm font-semibold">
           <Search size={15} />

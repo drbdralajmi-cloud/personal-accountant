@@ -8,8 +8,8 @@
  * وظيفتها التدريب على الإيقاع لا إنشاء الشعر.
  */
 
-import { LexEntry, patternIndex, rhymeWords, wordsForPattern } from '../lexicon';
-import { AnalyzedFoot, VerseAnalysis } from './analyze';
+import { LexEntry, patternIndex, rhymeWords, wordEntry, wordsForPattern } from '../lexicon';
+import { analyzeVerse, AnalyzedFoot, ProsodySystemOf, VerseAnalysis } from './analyze';
 import { Meter } from './meters';
 
 export interface ComposedLine {
@@ -236,6 +236,253 @@ function hintFor(f: AnalyzedFoot): string {
     .split('')
     .map((c) => (c === '1' ? 'متحرك' : 'ساكن'))
     .join(' ')}.`;
+}
+
+/* ------------------------------------------------------------------ */
+/*                       إعادة صياغة الشطر المكسور                      */
+/* ------------------------------------------------------------------ */
+
+export interface Repair {
+  /** الشطر بعد الإصلاح. */
+  text: string;
+  /** ما استُبدل: الكلمة القديمة والجديدة. */
+  swaps: { from: string; to: string; foot: string }[];
+  /** استقام الوزن بعد الإصلاح؟ */
+  ok: boolean;
+  meter: string | null;
+}
+
+/**
+ * إعادة صياغة شطرٍ مكسور ليستقيم وزنه.
+ *
+ * لا يُعاد بناء الشطر من الصفر — فذلك يُذهب كلام الشاعر — بل تُستبدل
+ * الكلمةُ التي وقع عندها الخلل بكلمةٍ من المعجم على الوزن المطلوب، وتُترك
+ * سائرُ كلماته كما هي. ثم يُعاد تحليل الناتج للتحقّق، فلا يُعرض إصلاحٌ لم
+ * يستقم.
+ *
+ * وهذا يحفظ الوزن لا المعنى؛ فالبديل يُقترح ليرى الشاعر ما يسدّ الموضع
+ * وزناً، ثم يختار هو ما يوافق معناه ولهجته.
+ */
+export function repairHemistich(
+  h: { text: string; feet: AnalyzedFoot[] } | null,
+  reanalyze: (text: string) => { ok: boolean; meter: { name: string } | null },
+  opts: { seed?: number; culprits?: { word: string; index: number; expected: string }[] } = {},
+): Repair | null {
+  if (!h || h.feet.every((f) => f.ok)) return null;
+  const words = h.text.split(/\s+/).filter(Boolean);
+  if (!words.length) return null;
+
+  // ما يقتضيه الوزن من الحروف، وما في الشطر منها
+  const required = h.feet.reduce((n, f) => n + f.pattern.length, 0);
+  const found = h.feet.reduce((n, f) => n + f.units.length, 0);
+  const delta = required - found; // موجب: ينقص الشطرَ حروف
+
+  // مواضع الاستبدال: الكلمات التي وقع عندها الخلل
+  const spots = (opts.culprits ?? [])
+    .map((c) => ({ at: c.index - 1, expected: c.expected }))
+    .filter((x) => x.at >= 0 && x.at < words.length);
+  if (!spots.length) {
+    h.feet.forEach((f, fi) => {
+      if (f.ok) return;
+      const at = f.units[0]?.word ?? fi;
+      if (at >= 0 && at < words.length) spots.push({ at, expected: f.name });
+    });
+  }
+  if (!spots.length) return null;
+
+  const attempt = (draft: string[], from: string, to: string, foot: string): Repair | null => {
+    const text = draft.join(' ');
+    const back = reanalyze(text);
+    if (!back.ok) return null;
+    return { text, swaps: [{ from, to, foot }], ok: true, meter: back.meter?.name ?? null };
+  };
+
+  const byLength = patternsByLength();
+
+  // ١) الاستبدال: كلمةٌ مكانَ كلمة، طولُها يسدّ الفرق
+  for (const spot of spots) {
+    const current = prosodicLength(words[spot.at]);
+    if (!current) continue;
+    const want = current + delta;
+    if (want < 2) continue;
+    const pool = (byLength.get(want) ?? []).slice(0, 300);
+    let tried = 0;
+    for (const entry of pool) {
+      if (++tried > 120) break;
+      for (const form of ['waqf', 'wasl', 'tanween'] as const) {
+        const draft = [...words];
+        const shown = spokenAs(entry, form);
+        draft[spot.at] = shown;
+        const r = attempt(draft, words[spot.at], shown, spot.expected);
+        if (r) return r;
+      }
+    }
+  }
+
+  // ٢) الحذف: إن زاد الشطرُ على وزنه، فقد تكون فيه كلمةٌ مقحمة
+  if (delta < 0) {
+    const order = [...spots.map((x) => x.at), ...words.map((_, i) => i)];
+    for (const at of order) {
+      if (at < 0 || at >= words.length || words.length < 3) continue;
+      const draft = words.filter((_, i) => i !== at);
+      const r = attempt(draft, words[at], '(حُذفت)', 'حذف الزائد');
+      if (r) return r;
+    }
+  }
+
+  // ٣) الزيادة: إن نقص الشطرُ عن وزنه، فقد يحتاج كلمةً تسدّ الموضع
+  if (delta > 0) {
+    const pool = (byLength.get(delta) ?? []).slice(0, 200);
+    const positions = [...new Set([...spots.map((x) => x.at), 0, words.length])];
+    for (const at of positions) {
+      let tried = 0;
+      for (const entry of pool) {
+        if (++tried > 90) break;
+        for (const form of ['wasl', 'waqf'] as const) {
+          const shown = spokenAs(entry, form);
+          const draft = [...words.slice(0, at), shown, ...words.slice(at)];
+          const r = attempt(draft, '(لا شيء)', shown, 'سدّ النقص');
+          if (r) return r;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/** طول الكلمة بالحروف العروضية في الوقف. */
+function prosodicLength(word: string): number {
+  const e = wordEntry(word);
+  return e ? e.waqf.length : 0;
+}
+
+let lengthIndex: Map<number, LexEntry[]> | null = null;
+/** المعجم مفهرساً بطول الكلمة، لاختيار بديلٍ يسدّ فرقاً معلوماً. */
+function patternsByLength(): Map<number, LexEntry[]> {
+  if (lengthIndex) return lengthIndex;
+  const { byWaqf } = patternIndex();
+  const m = new Map<number, LexEntry[]>();
+  for (const [pat, list] of byWaqf) {
+    const arr = m.get(pat.length) ?? [];
+    for (const e of list) arr.push(e);
+    m.set(pat.length, arr);
+  }
+  lengthIndex = m;
+  return m;
+}
+
+function spokenAs(e: LexEntry, form: 'waqf' | 'wasl' | 'tanween'): string {
+  if (form === 'waqf') return e.word;
+  if (form === 'wasl') return addMark(e.word, 'ُ');
+  return addMark(e.word, 'ٌ');
+}
+
+/**
+ * شطرٌ يحتوي كلمةً بعينها على وزنٍ بعينه.
+ *
+ * يُطلب حين يقول المستخدم: «أعجبتني هذه الكلمة، أرِني كيف أستعملها في بيت».
+ * تُثبَّت الكلمة في موضعٍ يوافق تقطيعَها من الوزن، ويُملأ ما حولها من المعجم.
+ */
+export function lineWithWord(
+  meter: Meter,
+  word: { word: string; spoken: string; waqf: string; wasl: string; tanween: string },
+  opts: { seed?: number } = {},
+): ComposedLine | null {
+  const slots = meter.sadr;
+  const rand = rng(opts.seed ?? 11);
+
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const chosen = slots.map((slot) => {
+      const idx = attempt < 3 ? 0 : Math.floor(rand() * slot.variants.length);
+      return slot.variants[Math.min(idx, slot.variants.length - 1)];
+    });
+    const target = chosen.map((v) => v.pattern).join('');
+
+    // مواضع الكلمة الممكنة في السلسلة، بصورها الثلاث
+    const forms: [string, string][] = [
+      [word.waqf, word.word],
+      [word.wasl, addMark(word.word, 'ُ')],
+      [word.tanween, addMark(word.word, 'ٌ')],
+    ];
+    for (const [pat, shown] of forms) {
+      let at = target.indexOf(pat);
+      while (at !== -1) {
+        const head = target.slice(0, at);
+        const tail = target.slice(at + pat.length);
+        const isEnd = tail.length === 0;
+        // الكلمة في آخر الشطر تُوقَف، وفي وسطه تُوصَل
+        if (isEnd && pat !== word.waqf) {
+          at = target.indexOf(pat, at + 1);
+          continue;
+        }
+        const before = head ? tile(head, { seed: Math.floor(rand() * 1e6) }) : [];
+        const after = tail ? tile(tail, { seed: Math.floor(rand() * 1e6) }) : [];
+        if ((head && !before) || (tail && !after)) {
+          at = target.indexOf(pat, at + 1);
+          continue;
+        }
+        const parts = [
+          ...(before ?? []).map((w) => w.spoken),
+          shown,
+          ...(after ?? []).map((w) => w.spoken),
+        ];
+        return {
+          text: parts.join(' '),
+          words: [],
+          feet: chosen.map((v) => v.name),
+          pattern: target,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+export interface RepairResult {
+  sadr: Repair | null;
+  ajz: Repair | null;
+  /** الشطران بعد الإصلاح، مجموعين كما يُكتب البيت. */
+  text: string | null;
+  ok: boolean;
+}
+
+/**
+ * إعادة صياغة بيتٍ مكسور ليستقيم وزنه على وزنه نفسه.
+ *
+ * تُستبدل الكلمةُ التي وقع عندها الخلل بكلمةٍ على الوزن المطلوب، ويُترك
+ * سائرُ كلام الشاعر كما هو، ثم يُعاد التحليل للتحقّق. فما يُعرض قد قِيس.
+ */
+export function repairVerse(
+  a: VerseAnalysis,
+  opts: { seed?: number; pool?: Meter[] } = {},
+): RepairResult {
+  const none: RepairResult = { sadr: null, ajz: null, text: null, ok: false };
+  if (a.ok || !a.meter) return none;
+  const system = a.system === 'مخصّص' ? undefined : (a.system as ProsodySystemOf);
+  // نتحقّق على أوزان الميزان كلها لا على أقربها وحده: غرضُ الشاعر أن
+  // يستقيم بيته، فإن استقام على طَرقٍ مجاورٍ فذلك مقصودٌ يُخبَر به.
+  const pool = opts.pool;
+  const again = (text: string) => {
+    const r = analyzeVerse(text, { pool, system });
+    return { ok: r.ok, meter: r.meter };
+  };
+  const pick = (side: 'الصدر' | 'العجز') =>
+    a.culprits.filter((c) => c.hemistich === side).map((c) => ({
+      word: c.word,
+      index: c.index,
+      expected: c.expected,
+    }));
+  const sadr = repairHemistich(a.sadr, again, { ...opts, culprits: pick('الصدر') });
+  const ajz = a.ajz ? repairHemistich(a.ajz, again, { ...opts, culprits: pick('العجز') }) : null;
+  if (!sadr && !ajz) return none;
+
+  const parts = [sadr?.text ?? a.sadr?.text, a.ajz ? (ajz?.text ?? a.ajz.text) : null].filter(
+    Boolean,
+  ) as string[];
+  const text = parts.length ? parts.join(' … ') : null;
+  const check = text ? analyzeVerse(text, { pool, system }) : null;
+  return { sadr, ajz, text, ok: !!check?.ok };
 }
 
 /** اقتراح قوافٍ موافقة لرويّ معيّن. */

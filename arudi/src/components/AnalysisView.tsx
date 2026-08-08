@@ -85,6 +85,28 @@ export function AnalysisView({ data }: { data: ApiAnalysis }) {
         </div>
       )}
 
+      {/* إعادة الصياغة */}
+      {data.repair && (
+        <div className="card" style={{ borderColor: 'var(--ok)' }}>
+          <h3 className="title mb-1 text-lg">صياغةٌ يستقيم بها الوزن</h3>
+          <p className="mb-3 text-sm leading-relaxed muted">
+            جرّب المحرّك تبديلاً واحداً ثم أعاد قياس الناتج، فاستقام
+            {data.repair.meter ? ` على ${data.repair.meter}` : ''}. وهذا يحفظ
+            <strong> الوزن لا المعنى</strong> — فانظر أيوافق مرادك ولهجتك، وإلا فأبدِل بكلمةٍ من
+            عندك على الوزن نفسه.
+          </p>
+          <p className="verse text-xl leading-loose">{data.repair.text}</p>
+          <ul className="mt-3 space-y-1 text-xs muted">
+            {data.repair.swaps.map((s, i) => (
+              <li key={i}>
+                <span className="verse">«{s.from}»</span> ← <span className="verse">«{s.to}»</span>
+                <span className="faint"> — {s.foot}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* مواضع الخلل */}
       {!!data.issues.length && (
         <div className="card">

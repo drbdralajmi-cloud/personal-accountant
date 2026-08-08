@@ -120,6 +120,9 @@ export interface Culprit {
   reason: string;
 }
 
+/** الميزان كما تقبله خيارات القياس. */
+export type ProsodySystemOf = ProsodySystem;
+
 /** خيارات القياس: بأيّ ميزان، وعلى أيّ مجموعة أوزان. */
 export interface AnalyzeOptions {
   /** الأوزان التي يُقاس عليها. الأصل: بحور الخليل. */

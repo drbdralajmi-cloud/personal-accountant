@@ -256,6 +256,17 @@ export function rhymeWords(rawi: string, opts: WordQuery = {}): LexEntry[] {
 }
 
 /** إحصاءات المعجم — تُعرض في لوحة الإدارة. */
+let plainIndex: Map<string, LexEntry> | null = null;
+
+/** مدخلةُ كلمةٍ بنصّها (بلا تشكيل)، إن كانت في المعجم. */
+export function wordEntry(word: string): LexEntry | undefined {
+  if (!plainIndex) {
+    plainIndex = new Map();
+    for (const e of build().entries) if (!plainIndex.has(e.plain)) plainIndex.set(e.plain, e);
+  }
+  return plainIndex.get(stripDiacritics(word).trim());
+}
+
 export function lexiconStats() {
   const { entries } = build();
   const byPattern = new Map<string, number>();

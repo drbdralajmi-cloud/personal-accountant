@@ -5,7 +5,7 @@ import {
   analyzeVerse,
   compareSystems,
 } from '@/lib/arud/analyze';
-import { suggestCompletion, suggestFixes, suggestRhymes } from '@/lib/arud/compose';
+import { repairVerse, suggestCompletion, suggestFixes, suggestRhymes } from '@/lib/arud/compose';
 import { NABATI_METERS } from '@/lib/arud/nabati';
 import { describeRhyme } from '@/lib/arud/rhyme';
 
@@ -102,6 +102,18 @@ export async function POST(req: NextRequest) {
       khalili: { meter: cmp.khalili.meter?.name ?? null, ok: cmp.khalili.ok },
       nabati: { meter: cmp.nabati.meter?.name ?? null, ok: cmp.nabati.ok },
     };
+  }
+
+  // إعادة الصياغة: تُطلب حين ينكسر الوزن، ولا تُعرض إلا إن تحقّق المحرّك منها
+  if (!a.ok && a.meter) {
+    const r = repairVerse(a, { pool: system === 'نبطي' ? NABATI_METERS : undefined });
+    if (r.ok && r.text) {
+      payload.repair = {
+        text: r.text,
+        meter: r.sadr?.meter ?? r.ajz?.meter ?? null,
+        swaps: [...(r.sadr?.swaps ?? []), ...(r.ajz?.swaps ?? [])],
+      };
+    }
   }
 
   if (body.suggest) {

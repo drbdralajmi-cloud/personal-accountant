@@ -20,6 +20,7 @@
  */
 
 import { NABATI_METERS_DATA, NabatiMeterData } from '@/data/nabati';
+import { analyzeNabati } from './analyze';
 import { splitSyllables, SYLLABLE_LABEL } from './feet';
 import { formulaMeter, parseFormula, ParsedFormula } from './formula';
 import { Meter } from './meters';
@@ -213,6 +214,48 @@ export function searchTuruq(query: TariqQuery): Tariq[] {
       .join(' | ');
     return hay.includes(q);
   }).sort((a, b) => b.frequency - a.frequency);
+}
+
+/**
+ * البحث بالبيت أو الشطر: يُقاس النصّ على الطروق كلها، وتُعاد مرتّبةً
+ * بأقربها إليه. فيسأل المستخدم «على أيّ وزنٍ هذا البيت؟» فيُجاب بقائمةٍ
+ * مرتّبة لا بحكمٍ واحد، ويرى بنفسه كم بَعُد كلُّ طَرقٍ عن نصّه.
+ */
+export interface VerseMatch {
+  tariq: Tariq;
+  /** استقام عليه تماماً؟ */
+  ok: boolean;
+  confidence: number;
+  /** التفعيلات كما وقعت فعلاً. */
+  feet: string[];
+  /** حروف النصّ مقابل ما يقتضيه الطَّرق. */
+  letters: number;
+  required: number;
+}
+
+export function matchVerseToTuruq(text: string, limit = 6): VerseMatch[] {
+  const a = analyzeNabati(text);
+  const byName = new Map(a.candidates.map((c) => [c.slug, c]));
+  const found = a.meter?.slug;
+
+  return TURUQ.map((t) => {
+    const c = byName.get(t.slug);
+    return {
+      tariq: t,
+      ok: a.ok && t.slug === found,
+      confidence: c ? c.confidence : 0,
+      feet: t.slug === found ? (a.sadr?.feet.map((f) => f.name) ?? []) : [],
+      letters: a.shape === 'بيت' ? Math.round(a.letters / 2) : a.letters,
+      required: t.letters,
+    };
+  })
+    .sort((x, y) => {
+      if (x.ok !== y.ok) return x.ok ? -1 : 1;
+      if (y.confidence !== x.confidence) return y.confidence - x.confidence;
+      // ثم الأقرب عدداً في الحروف
+      return Math.abs(x.required - x.letters) - Math.abs(y.required - y.letters);
+    })
+    .slice(0, limit);
 }
 
 /** الطروق التي تشترك في تفعيلةٍ بعينها — «أرِني كل طَرقٍ فيه فاعلاتن». */

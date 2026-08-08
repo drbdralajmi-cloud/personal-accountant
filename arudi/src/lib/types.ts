@@ -105,6 +105,12 @@ export interface ApiAnalysis {
   rhymeText?: string;
   completion?: { text: string; feet: string[] };
   comparison?: ApiComparison;
+  /** البيت بعد إعادة صياغته ليستقيم وزنه — لا يُعرض إلا إن تحقّق المحرّك منه. */
+  repair?: {
+    text: string;
+    meter: string | null;
+    swaps: { from: string; to: string; foot: string }[];
+  };
   error?: string;
 }
 
