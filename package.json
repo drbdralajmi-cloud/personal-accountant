@@ -1,0 +1,13 @@
+{
+  "name": "personal-accountant-workspace",
+  "private": true,
+  "description": "مستودعٌ يضمّ مشروعين: المحاسب الشخصي (ملفات ثابتة في الجذر)، ومنصّة العَروض في مجلّد arudi.",
+  "scripts": {
+    "setup": "cd arudi && npm install",
+    "dev": "cd arudi && npm run dev",
+    "build": "cd arudi && npm run build",
+    "start": "cd arudi && npm start",
+    "test": "cd arudi && npm test",
+    "accountant": "python3 -m http.server 8042"
+  }
+}
