@@ -1,0 +1,23 @@
+{
+  "name": "منصّة العَروض — أوزان الشعر العربي",
+  "short_name": "العَروض",
+  "description": "تعلّم علم العروض، وحلّل أوزان الشعر وتقطيعه، وتدرّب على النظم.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ed",
+  "theme_color": "#0e6957",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "تحليل بيت", "url": "/analyze" },
+    { "name": "التدريب", "url": "/training" },
+    { "name": "القوالب", "url": "/taf3ilat" }
+  ]
+}
