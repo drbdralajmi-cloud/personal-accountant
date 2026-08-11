@@ -8,6 +8,7 @@
  *    وتشكيلها معلوم بالقالب فيكون تقطيعها قطعياً.
  */
 
+import { ATTESTED_WORDS } from '@/data/attested';
 import { CURATED_WORDS } from '@/data/curated';
 import { MORPH_PATTERNS, derive } from '@/data/morphology';
 import { SOUND_ROOTS } from '@/data/roots';
@@ -15,7 +16,14 @@ import { SUKUN, stripDiacritics } from './arud/chars';
 import { splitSyllables, SYLLABLE_LABEL } from './arud/feet';
 import { Unit, mark, toUnits } from './arud/prosodic';
 
-export type WordSource = 'معتمدة' | 'قياسية';
+/**
+ * مصدر الكلمة:
+ *  - «معتمدة» : منتقاةٌ بيد، مشكولةٌ تشكيلاً تامّاً.
+ *  - «منقولة» : مستخرجةٌ من نصٍّ عربيٍّ مشكولٍ موثوق — كلماتٌ مستعمَلة حقاً.
+ *  - «قياسية» : مولَّدةٌ من جذرٍ على وزنٍ صرفيّ، تقطيعُها قطعيٌّ لأن القالب
+ *               يحدّد تشكيلها، لكنها قد تخرج بصيغةٍ لا يستعملها المتكلّمون.
+ */
+export type WordSource = 'معتمدة' | 'منقولة' | 'قياسية';
 
 export interface LexEntry {
   /** الكلمة مشكولة. */
@@ -130,6 +138,14 @@ function build() {
     entries.push(e);
   }
 
+  // ثم المنقولة: كلماتٌ مستعمَلةٌ حقاً، تسبق المولَّدة في الترتيب
+  for (const w of ATTESTED_WORDS) {
+    const e = toEntry(w.trim(), 'منقولة');
+    if (!e || seen.has(e.word)) continue;
+    seen.add(e.word);
+    entries.push(e);
+  }
+
   for (const root of SOUND_ROOTS) {
     for (const p of MORPH_PATTERNS) {
       const w = derive(root, p);
@@ -165,7 +181,7 @@ export const lexiconSize = () => build().entries.length;
 export interface WordQuery {
   /** التمثيل الرمزي المطلوب. */
   pattern?: string;
-  /** الاقتصار على الكلمات المعتمدة. */
+  /** الاقتصار على الكلمات الحقيقية (المعتمدة والمنقولة) دون المولَّدة. */
   curatedOnly?: boolean;
   /** عدد المقاطع. */
   syllables?: number;
@@ -185,7 +201,7 @@ export function wordsForPattern(pattern: string, opts: WordQuery = {}): WordMatc
   const seen = new Set<string>();
   const push = (list: LexEntry[] | undefined, form: 'وقف' | 'وصل' | 'تنوين') => {
     for (const e of list ?? []) {
-      if (opts.curatedOnly && e.source !== 'معتمدة') continue;
+      if (opts.curatedOnly && e.source === 'قياسية') continue;
       if (seen.has(e.word)) continue;
       seen.add(e.word);
       out.push({ ...e, form, spoken: spokenForm(e.word, form) });
@@ -218,10 +234,13 @@ function finish<T extends LexEntry>(list: T[], opts: WordQuery): T[] {
     const r = opts.rhyme;
     out = out.filter((e) => e.plain.endsWith(r));
   }
-  // ترتيب: المعتمدة أولاً ثم خلطٌ ثابت بحسب البذرة
+  // ترتيب: الكلمات الحقيقية أولاً (المعتمدةُ ثم المنقولة)، والمولَّدة آخراً،
+  // ثم خلطٌ ثابت بحسب البذرة ليتجدّد المعروض دون أن يفقد قابلية التكرار
+  const rank: Record<string, number> = { معتمدة: 0, منقولة: 1, قياسية: 2 };
   const seed = opts.seed ?? 1;
   out = [...out].sort((a, b) => {
-    if (a.source !== b.source) return a.source === 'معتمدة' ? -1 : 1;
+    const d = (rank[a.source] ?? 3) - (rank[b.source] ?? 3);
+    if (d) return d;
     return hash(a.word + seed) - hash(b.word + seed);
   });
   return opts.limit ? out.slice(0, opts.limit) : out;
@@ -244,7 +263,7 @@ export function searchWords(opts: WordQuery): LexEntry[] {
     out = out.filter(
       (e) => e.waqf === opts.pattern || e.tanween === opts.pattern || e.wasl === opts.pattern,
     );
-  if (opts.curatedOnly) out = out.filter((e) => e.source === 'معتمدة');
+  if (opts.curatedOnly) out = out.filter((e) => e.source !== 'قياسية');
   return finish(out, { ...opts, limit: opts.limit ?? 60 });
 }
 
@@ -277,6 +296,7 @@ export function lexiconStats() {
   return {
     total: entries.length,
     curated: entries.filter((e) => e.source === 'معتمدة').length,
+    attested: entries.filter((e) => e.source === 'منقولة').length,
     derived: entries.filter((e) => e.source === 'قياسية').length,
     distinctPatterns: byPattern.size,
     byPattern,

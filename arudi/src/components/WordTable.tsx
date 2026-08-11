@@ -89,7 +89,7 @@ export function WordTable({
             onChange={(e) => setCuratedOnly(e.target.checked)}
             className="ml-1.5 accent-current"
           />
-          الكلمات المعتمدة فقط
+          الكلمات الحقيقية فقط (لا مولَّدة)
         </label>
         <CopyButton text={allText} label="نسخ الجدول" className="btn px-3 py-2 text-xs" />
         <span className="chip chip-accent">{total.toLocaleString('ar-EG')} كلمة متاحة</span>
@@ -122,11 +122,15 @@ export function WordTable({
                 </td>
                 <td className="hidden lg:table-cell">
                   <span
-                    className={`chip !py-0.5 !text-[10px] ${w.source === 'معتمدة' ? 'chip-ok' : ''}`}
+                    className={`chip !py-0.5 !text-[10px] ${
+                      w.source === 'معتمدة' ? 'chip-ok' : w.source === 'منقولة' ? 'chip-gold' : ''
+                    }`}
                     title={
                       w.source === 'معتمدة'
-                        ? 'كلمة مثبتة في المعاجم'
-                        : `صيغة قياسية مولَّدة${w.morph ? ` على وزن ${w.morph}` : ''}`
+                        ? 'كلمة منتقاة بيد، مثبتة في المعاجم.'
+                        : w.source === 'منقولة'
+                          ? 'كلمة مستعمَلة حقاً، استُخرجت من نصٍّ عربيٍّ مشكولٍ تشكيلاً تامّاً، وتحقّق المحرّك من تقطيعها.'
+                          : `صيغة قياسية مولَّدة من جذرٍ${w.morph ? ` على وزن ${w.morph}` : ''} — تقطيعها قطعيّ، وقد لا تكون مستعمَلة.`
                     }
                   >
                     {w.source}

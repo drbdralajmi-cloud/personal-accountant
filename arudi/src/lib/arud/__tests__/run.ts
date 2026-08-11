@@ -157,7 +157,26 @@ console.log(`تحقّق من ${CORPUS.length} بيتاً.`);
 
 console.log('\n=== المعجم الموزون ===\n');
 const stats = lexiconStats();
-console.log(`${stats.total} كلمة (معتمدة ${stats.curated} / قياسية ${stats.derived}).`);
+console.log(
+  `${stats.total} كلمة (معتمدة ${stats.curated} / منقولة ${stats.attested} / قياسية ${stats.derived}).`,
+);
+{
+  // الكلمات الحقيقية (المعتمدة والمنقولة) يجب أن تُقدَّم على المولَّدة
+  const sample = wordsForPattern('10110', { limit: 12 });
+  const good = sample.every((w, i) =>
+    i === 0 ? true : rankOf(sample[i - 1].source) <= rankOf(w.source),
+  );
+  good ? pass++ : fail++;
+  console.log(`${good ? '✔' : '✘'} الترتيب: الحقيقية قبل المولَّدة — ${sample.slice(0, 6).map((w) => w.word).join('، ')}`);
+
+  const realOnly = wordsForPattern('10110', { curatedOnly: true, limit: 5 });
+  const ok2 = realOnly.every((w) => w.source !== 'قياسية');
+  ok2 ? pass++ : fail++;
+  console.log(`${ok2 ? '✔' : '✘'} التصفية على الحقيقية وحدها تعمل (${realOnly.length} عيّنة).`);
+}
+function rankOf(s: string) {
+  return s === 'معتمدة' ? 0 : s === 'منقولة' ? 1 : 2;
+}
 if (stats.total < 5000) {
   console.log('✘ المعجم أصغر من المطلوب (٥٠٠٠ كلمة).');
   fail++;
